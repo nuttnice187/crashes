@@ -1,14 +1,15 @@
 import sys
 
-from requests import get
+from requests import get, Response
 from enum import Enum
 from argparse import ArgumentParser, Namespace
-from logging import Logger, getLogger
+from logging import Logger, getLogger, INFO
 from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 
 L: Logger = getLogger(__name__)
+L.setLevel(INFO)
 
 class Arguments(Enum):
     DESCRIPTION = "Data ingestion and Delta table creation workflow."
@@ -31,12 +32,26 @@ class SparkConfig(Enum):
     DELTA_CATALOG = ""
 
 class Crashes:
-
+    data: DataFrame
     def __init__(self, data: DataFrame) -> None:
-        pass
+        self.data = data
+
+    def get_count_by_borough(self):
+        return self.data.groupBy("borough").count()
 
     def write(self) -> None:
         pass
+
+
+def get_data(spark: SparkSession, api_url: str) -> SparkDataFrame:
+    """
+    Fetches data from a given API URL and creates a Spark DataFrame from it.
+    """
+    response: Response = requests.get(api_url)
+    response.raise_for_status()  # Raise an exception for bad status codes
+    data_list = response.json()
+    print(type(data_list))
+    return spark.createDataFrame(data_list)
 
 
 def main(
