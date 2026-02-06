@@ -43,7 +43,7 @@ class Crashes:
         pass
 
 
-def get_data(spark: SparkSession, api_url: str) -> SparkDataFrame:
+def get_data(spark: SparkSession, api_url: str) -> DataFrame:
     """
     Fetches data from a given API URL and creates a Spark DataFrame from it.
     """
