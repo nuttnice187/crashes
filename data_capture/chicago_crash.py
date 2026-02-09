@@ -114,6 +114,15 @@ def main(spark: SparkSession, *args: str) -> None:
     """
     Main entry point for the script.
     """
+
+    parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")
+    parser.add_argument('--api_url', type=str, help='API URL to fetch data from.')
+    parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
+
+    args, unknown = parser.parse_known_args()
+    
+    api_url: str = args.api_url if args.api_url else Default.API_URL.value
+    target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
     api_url, target_path = args
 
-    crashes: Ingestor = Ingestor(spark, api_url, target_path)
+    crashes = Ingestor(spark, api_url, target_path)
