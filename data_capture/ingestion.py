@@ -110,7 +110,7 @@ class Ingestor:
         self.target.write.mode('append').parquet(target_path)
 
 
-def main(spark: SparkSession, *args: str) -> None:
+def main(spark: SparkSession) -> None:
     """
     Main entry point for the script.
     """
