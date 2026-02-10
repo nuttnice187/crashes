@@ -5,4 +5,12 @@ from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
     print(sys.argv)
-    main(SparkSession.builder.getOrCreate())
+    project_root = 'crashes'
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+        print(f"Added '{project_root}' to sys.path")
+    else:
+        print(f"'{project_root}' already in sys.path")
+        
+    # main(SparkSession.builder.getOrCreate())
