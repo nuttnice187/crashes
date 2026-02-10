@@ -8,10 +8,10 @@ from typing import Callable
 
 from pyspark.sql import SparkSession
 
-if __name__ == "__main__":
-    L: Logger = getLogger(__name__)
-    L.setLevel(INFO)
-    
+L: Logger = getLogger(__name__)
+L.setLevel(INFO)
+
+if __name__ == "__main__":    
     args: Namespace
     parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")    
     
