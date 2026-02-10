@@ -1,9 +1,10 @@
 import sys
-from importlib import import_module
+
 from argparse import ArgumentParser, Namespace
-from data_capture.ingestion import main
-from pyspark.sql import SparkSession
+from importlib import import_module
 from typing import Callable
+
+from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
     args: Namespace
