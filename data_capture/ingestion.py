@@ -112,17 +112,10 @@ class Ingestor:
         self.target.write.mode('append').parquet(target_path)
 
 
-def main(spark: SparkSession, *args: str) -> None:
+def main(spark: SparkSession, args: Namespace) -> None:
     """
     Main entry point for the script.
     """
-
-    parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")
-    parser.add_argument('--api_url', type=str, help='API URL to fetch data from.')
-    parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
-
-    args, unknown = parser.parse_known_args()
-
     api_url: str = args.api_url if args.api_url else Default.API_URL.value
     target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
 
