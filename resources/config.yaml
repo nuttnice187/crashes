@@ -1,1 +1,51 @@
-
+resources:
+  jobs:
+    change_feed:
+      name: change_feed
+      tasks:
+        - task_key: curation
+          spark_python_task:
+            python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/entry.py
+            parameters:
+              - --job
+              - "{{job.name}}"
+              - --task
+              - "{{task.name}}"
+              - --source_path
+              - "{{job.parameters.external_path}}"
+              - --target_path
+              - "{{job.parameters.silver_table}}"
+              - --run_id
+              - "{{job.run_id}}"
+          environment_key: Default
+        - task_key: presentation
+          spark_python_task:
+            python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/entry.py
+            parameters:
+              - --job
+              - "{{job.name}}"
+              - --task
+              - "{{task.name}}"
+              - --source_path
+              - "{{job.parameters.silver_table}}"
+              - --target_path
+              - "{{job.parameters.gold_table}}"
+              - --run_id
+              - "{{job.run_id}}"
+          environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: api_url
+          default: https://data.cityofchicago.org/resource/85ca-t3if.json
+        - name: external_path
+          default: "/Volumes/workspace/google_drive/mock_s3"
+        - name: silver_table
+          default: "workspace.google_drive.silver_crashes"
+        - name: gold_table
+          default: "workspace.google_drive.gold_crashes"
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED
