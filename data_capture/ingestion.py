@@ -4,7 +4,7 @@ import time
 
 from argparse import ArgumentParser, Namespace
 from enum import Enum
-from logging import Logger, getLogger, INFO
+from logging import Logger
 from requests import get, Response, Session
 from typing import Dict, List, Optional
 
