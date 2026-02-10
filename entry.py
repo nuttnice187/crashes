@@ -13,5 +13,11 @@ if __name__ == "__main__":
     else:
         print(f"'{project_root}' already in sys.path")
 
+    parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")
+    parser.add_argument('--api_url', type=str, help='API URL to fetch data from.')
+    parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
+
+    args, unknown = parser.parse_known_args()
+
     # spark = SparkSession.builder.getOrCreate()
     # main(spark)
