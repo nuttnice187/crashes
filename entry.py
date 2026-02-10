@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
     
     args, unknown = parser.parse_known_args()
+    L.info(args)
     
     ROOT: str = 'crashes'
     module: str = "{package}.{module}".format(package=args.job, module=args.task)
