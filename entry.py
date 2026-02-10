@@ -13,7 +13,10 @@ L.setLevel(INFO)
 
 if __name__ == "__main__":    
     args: Namespace
-    parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")    
+    parser = ArgumentParser(description="Ingest data from API into Spark and save as Parquet."
+        "Curate silver delta table from ingested datasource."
+        "Present gold delta table from curated change feed."
+        )    
     
     parser.add_argument('--job', type=str, help='Python package name.')
     parser.add_argument('--task', type=str, help='Python module name.')
