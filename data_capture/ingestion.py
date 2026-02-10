@@ -72,7 +72,7 @@ class Ingestor:
 
         self.target: DataFrame = (
             spark.createDataFrame(source_copy)
-                .withColumn('update_time', current_timestamp())
+                .withColumn('ingest_time', current_timestamp())
                 .withColumnRenamed(":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
         )
 

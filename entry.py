@@ -21,7 +21,9 @@ if __name__ == "__main__":
     parser.add_argument('--job', type=str, help='Python package name.')
     parser.add_argument('--task', type=str, help='Python module name.')
     parser.add_argument('--api_url', type=str, help='API URL to fetch data from.')
-    parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
+    parser.add_argument('--source_path', type=str, help='Source path to read from.')
+    parser.add_argument('--target_path', type=str, help='Target path to write to.')
+    parser.add_argument('--run_id', type=str, help='databricks metadata for job run.')
     
     args, unknown = parser.parse_known_args()
     L.info(args)

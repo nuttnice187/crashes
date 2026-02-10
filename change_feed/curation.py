@@ -71,14 +71,17 @@ class Target(Enum):
         col("work_zone_type"),
         col("workers_present_i"),
         col("dooring_i"),
-        col("update_time")
+        col("ingest_time")
         )
 
 
 def main(
-    spark: SparkSession, logger: Logger, source_path: str, target_path: Optional[str] = None
+    spark: SparkSession, logger: Logger, source_path: str, 
+    target_path: Optional[str] = None, 
+    run_id: Optional[str] = None
     ) -> None:
     """transform location"""
-    source = spark.read.parquet(source_path)
-    target = source.select(*Target.COLS.value)
+    target = (spark.read.parquet(source_path)
+              .select(*Target.COLS.value)
+              .withColumn(lit(run_id).alias("run_id")))
     # target.write.mode("append").format("delta").save(target_path)
