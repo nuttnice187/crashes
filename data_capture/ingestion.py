@@ -38,7 +38,7 @@ class Ingestor:
         self.transform(spark, target_path)
         self.load(target_path)
 
-    def extract(self, api_url: str) -> DataFrame:
+    def extract(self, api_url: str) -> None:
         """
         Fetches data from a given API URL and creates a Spark DataFrame from it.
         Includes retry mechanism for network resilience.
@@ -73,6 +73,7 @@ class Ingestor:
         self.target: DataFrame = (
             spark.createDataFrame(source_copy)
                 .withColumn('update_time', current_timestamp())
+                .withColumnRenamed(":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
         )
 
         self.check_existing(spark, target_path)
@@ -95,7 +96,8 @@ class Ingestor:
             join_column = 'crash_record_id'
             if join_column in self.target.columns and join_column in existing.columns:
                 # Perform the left_anti join to get only new records
-                self.target = self.target.join(existing, on=join_column, how='left_anti')
+                self.target = (self.target
+                    .join(existing, on=join_column, how='left_anti'))
                 L.info(f"Performed left_anti join with existing data on '{join_column}'. New records count: {self.target.count()}")
             else:
                 L.warning(f"Cannot perform left_anti join: '{join_column}' not found in one or both dataframes. Loading all data from source.")
@@ -110,7 +112,7 @@ class Ingestor:
         self.target.write.mode('append').parquet(target_path)
 
 
-def main(spark: SparkSession) -> None:
+def main(spark: SparkSession, *args: str) -> None:
     """
     Main entry point for the script.
     """
@@ -120,9 +122,14 @@ def main(spark: SparkSession) -> None:
     parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
 
     args, unknown = parser.parse_known_args()
-    
+
     api_url: str = args.api_url if args.api_url else Default.API_URL.value
     target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
-    api_url, target_path = args
 
     crashes = Ingestor(spark, api_url, target_path)
+
+
+if __name__ == "__main__":
+    spark = SparkSession.builder.getOrCreate()
+
+    main(spark)
