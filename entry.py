@@ -12,5 +12,6 @@ if __name__ == "__main__":
         print(f"Added '{project_root}' to sys.path")
     else:
         print(f"'{project_root}' already in sys.path")
-        
-    # main(SparkSession.builder.getOrCreate())
+
+    # spark = SparkSession.builder.getOrCreate()
+    # main(spark)
