@@ -2,7 +2,7 @@ import sys
 import json
 import time
 
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from enum import Enum
 from logging import Logger
 from requests import get, Response, Session
@@ -16,7 +16,7 @@ from urllib3.util.retry import Retry
 
 class Default(Enum):
     API_URL = "https://data.cityofchicago.org/resource/85ca-t3if.json"
-    TARGET_PATH = "/content/drive/MyDrive/crashes_data" # Changed target path to a specific subdirectory
+    TARGET_PATH = "/content/drive/MyDrive/crashes_data"
 
 class Ingestor:
     """
@@ -51,10 +51,10 @@ class Ingestor:
         response: Optional[Response] = None
         try:
             response = session.get(api_url)
-            response.raise_for_status()  # Raise an exception for bad status codes
+            response.raise_for_status()
         except Exception as e:
             self.logger.error(f"Failed to fetch data from {api_url} after retries: {e}")
-            raise # Re-raise the exception if all retries fail
+            raise
 
         self.source: List[Dict] = response.json()
 
@@ -84,19 +84,16 @@ class Ingestor:
         Checks for existing data in the target path and performs incremental loading.
         """
         existing: Optional[DataFrame] = None
-        # Attempt to read existing parquet data from the target_path directory
+        
         try:
-            # Assuming target_path points to the directory where parquet files are stored.
             existing = spark.read.parquet(target_path)
             self.logger.info(f"Successfully read existing Parquet data from {target_path}. Row count: {existing.count()}")
         except Exception as e:
             self.logger.warning(f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data.")
 
         if existing is not None and not existing.isEmpty():
-            # Ensure the join column 'crash_record_id' exists in both DataFrames
             join_column = 'crash_record_id'
             if join_column in self.target.columns and join_column in existing.columns:
-                # Perform the left_anti join to get only new records
                 self.target = (self.target
                     .join(existing, on=join_column, how='left_anti'))
                 self.logger.info(f"Performed left_anti join with existing data on '{join_column}'. New records count: {self.target.count()}")
