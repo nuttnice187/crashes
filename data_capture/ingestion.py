@@ -14,9 +14,6 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import current_timestamp
 from urllib3.util.retry import Retry
 
-L: Logger = getLogger(__name__)
-L.setLevel(INFO)
-
 class Default(Enum):
     API_URL = "https://data.cityofchicago.org/resource/85ca-t3if.json"
     TARGET_PATH = "/content/drive/MyDrive/crashes_data" # Changed target path to a specific subdirectory
