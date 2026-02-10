@@ -23,10 +23,10 @@ if __name__ == "__main__":
         print(f"Added '{ROOT}' to sys.path")
     else:
         print(f"'{ROOT}' already in sys.path")
-        
-    print('.'.join((args.job, args.task)))
-    
-    main: Callable[[SparkSession, Namespace], None] = import_module((args.job, args.task).join('.')).main
+
+    module: str = "{package}.{module}".format(package=args.job, module=args.task)
+    print(module)    
+    main: Callable[[SparkSession, Namespace], None] = import_module(module).main
 
     
 
