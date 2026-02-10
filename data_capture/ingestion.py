@@ -25,15 +25,17 @@ class Ingestor:
     """
     Ingests data from a given API URL, transforms it, and loads it into a Parquet file.
     """
+    logger: Logger
     api_url: str
     target_path: str
     source: List[Dict]
     target: DataFrame
 
-    def __init__(self, spark: SparkSession, api_url: str, target_path: str) -> None:
+    def __init__(self, spark: SparkSession, logger: Logger, api_url: str, target_path: str) -> None:
         """
         Initializes the Ingestor with the provided SparkSession, API URL, and target path.
         """
+        self.logger = logger
         self.extract(api_url)
         self.transform(spark, target_path)
         self.load(target_path)
@@ -52,7 +54,7 @@ class Ingestor:
             response = session.get(api_url)
             response.raise_for_status()  # Raise an exception for bad status codes
         except Exception as e:
-            L.error(f"Failed to fetch data from {api_url} after retries: {e}")
+            self.logger.error(f"Failed to fetch data from {api_url} after retries: {e}")
             raise # Re-raise the exception if all retries fail
 
         self.source: List[Dict] = response.json()
@@ -87,9 +89,9 @@ class Ingestor:
         try:
             # Assuming target_path points to the directory where parquet files are stored.
             existing = spark.read.parquet(target_path)
-            L.info(f"Successfully read existing Parquet data from {target_path}. Row count: {existing.count()}")
+            self.logger.info(f"Successfully read existing Parquet data from {target_path}. Row count: {existing.count()}")
         except Exception as e:
-            L.warning(f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data.")
+            self.logger.warning(f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data.")
 
         if existing is not None and not existing.isEmpty():
             # Ensure the join column 'crash_record_id' exists in both DataFrames
@@ -98,12 +100,12 @@ class Ingestor:
                 # Perform the left_anti join to get only new records
                 self.target = (self.target
                     .join(existing, on=join_column, how='left_anti'))
-                L.info(f"Performed left_anti join with existing data on '{join_column}'. New records count: {self.target.count()}")
+                self.logger.info(f"Performed left_anti join with existing data on '{join_column}'. New records count: {self.target.count()}")
             else:
-                L.warning(f"Cannot perform left_anti join: '{join_column}' not found in one or both dataframes. Loading all data from source.")
+                self.logger.warning(f"Cannot perform left_anti join: '{join_column}' not found in one or both dataframes. Loading all data from source.")
 
         else:
-            L.info("No existing data to join with, or existing data is empty. Loading all data from source.")
+            self.logger.info("No existing data to join with, or existing data is empty. Loading all data from source.")
 
     def load(self, target_path: str) -> None:
         """
@@ -112,11 +114,11 @@ class Ingestor:
         self.target.write.mode('append').parquet(target_path)
 
 
-def main(spark: SparkSession, args: Namespace) -> None:
+def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Main entry point for the script.
     """
-    api_url: str = args.api_url if args.api_url else Default.API_URL.value
+    api_url: str = args.api_url if args.api_url else Default.API_URself.logger.value
     target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
 
-    crashes = Ingestor(spark, api_url, target_path)
+    crashes = Ingestor(spark, logger, api_url, target_path)
