@@ -1,8 +1,9 @@
+from argparse import Namespace
 from enum import Enum
 from logging import Logger
 from typing import Optional
 
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from pyspark.sql.functions import col, to_timestamp, from_json
 from pyspark.sql.types import (
@@ -76,12 +77,14 @@ class Target(Enum):
 
 
 def main(
-    spark: SparkSession, logger: Logger, source_path: str, 
-    target_path: Optional[str] = None, 
-    run_id: Optional[str] = None
+    spark: SparkSession, logger: Logger, args: Namespace
     ) -> None:
     """transform location"""
-    target = (spark.read.parquet(source_path)
+    source_path: str = args.source_path
+    target_path: str = args.target_path
+    run_id: str = args.run_id
+
+    target: DataFrame = (spark.read.parquet(source_path)
               .select(*Target.COLS.value)
               .withColumn(lit(run_id).alias("run_id")))
     # target.write.mode("append").format("delta").save(target_path)
