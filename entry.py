@@ -2,11 +2,16 @@ import sys
 
 from argparse import ArgumentParser, Namespace
 from importlib import import_module
+
+from logging import Logger, getLogger, INFO
 from typing import Callable
 
 from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
+    L: Logger = getLogger(__name__)
+    L.setLevel(INFO)
+    
     args: Namespace
     spark = SparkSession.builder.getOrCreate()
     parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")    
@@ -23,9 +28,9 @@ if __name__ == "__main__":
     
     if ROOT not in sys.path:
         sys.path.insert(0, ROOT)
-        print(f"Added '{ROOT}' to sys.path")
+        L.info(f"Added '{ROOT}' to sys.path")
     else:
-        print(f"'{ROOT}' already in sys.path")
+        L.info(f"'{ROOT}' already in sys.path")
 
-    main: Callable[[SparkSession, Namespace], None] = import_module(module).main
-    main(spark, args)
+    main: Callable[[SparkSession, Logger, Namespace], None] = import_module(module).main
+    main(spark, L, args)
