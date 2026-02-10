@@ -19,6 +19,8 @@ resources:
               - "{{job.run_id}}"
           environment_key: Default
         - task_key: presentation
+          depends_on:
+            - task_key: curation
           spark_python_task:
             python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/entry.py
             parameters:
