@@ -33,4 +33,4 @@ if __name__ == "__main__":
         L.info(f"'{ROOT}' already in sys.path")
 
     main: Callable[[SparkSession, Logger, Namespace], None] = import_module(module).main
-    main(SparkSession.builder.getOrCreate(), L, args)
+    # main(SparkSession.builder.getOrCreate(), L, args)
