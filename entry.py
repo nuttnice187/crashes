@@ -9,11 +9,12 @@ from typing import Callable
 from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
+    spark = SparkSession.builder.getOrCreate()
+    
     L: Logger = getLogger(__name__)
     L.setLevel(INFO)
     
     args: Namespace
-    spark = SparkSession.builder.getOrCreate()
     parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")    
     
     parser.add_argument('--job', type=str, help='Python package name.')
