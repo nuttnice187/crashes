@@ -37,6 +37,8 @@ class Ingestor:
         self.transform(spark, target_path)
         self.load(target_path)
 
+        self.logger.info('hello')
+
     def extract(self, api_url: str) -> None:
         """
         Fetches data from a given API URL and creates a Spark DataFrame from it.
