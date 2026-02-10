@@ -6,17 +6,19 @@ from pyspark.sql import SparkSession
 from typing import Callable
 
 if __name__ == "__main__":
-    print(sys.argv)
-    ROOT: str = 'crashes'
+    args: Namespace
+    spark = SparkSession.builder.getOrCreate()
     parser = ArgumentParser(description="Ingest data into Spark and save as Parquet.")    
     
     parser.add_argument('--job', type=str, help='Python package name.')
     parser.add_argument('--task', type=str, help='Python module name.')
     parser.add_argument('--api_url', type=str, help='API URL to fetch data from.')
     parser.add_argument('--target_path', type=str, help='Target path to save Parquet data.')
-
-    args: Namespace
+    
     args, unknown = parser.parse_known_args()
+    
+    ROOT: str = 'crashes'
+    module: str = "{package}.{module}".format(package=args.job, module=args.task)
     
     if ROOT not in sys.path:
         sys.path.insert(0, ROOT)
@@ -24,11 +26,5 @@ if __name__ == "__main__":
     else:
         print(f"'{ROOT}' already in sys.path")
 
-    module: str = "{package}.{module}".format(package=args.job, module=args.task)
-    print(module)    
     main: Callable[[SparkSession, Namespace], None] = import_module(module).main
-
-    
-
-    # spark = SparkSession.builder.getOrCreate()
-    # main(spark, args)
+    main(spark, args)
