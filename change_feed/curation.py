@@ -16,6 +16,10 @@ from pyspark.sql.types import (
     DoubleType
 )
 
+class Default(Enum):
+    SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
+    TARGET_PATH = "workspace.google_drive.silver_table"
+
 class Location(Enum):
     SCHEMA = StructType([
         StructField("type", StringType()),
@@ -80,8 +84,8 @@ def main(
     spark: SparkSession, logger: Logger, args: Namespace
     ) -> None:
     """transform location"""
-    source_path: str = args.source_path
-    target_path: str = args.target_path
+    source_path: str = args.source_path if args.source_path else Default.SOURCE_PATH.value
+    target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
     run_id: str = args.run_id
 
     target: DataFrame = (spark.read.parquet(source_path)
