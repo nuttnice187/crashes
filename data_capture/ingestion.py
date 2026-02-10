@@ -127,9 +127,3 @@ def main(spark: SparkSession, *args: str) -> None:
     target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
 
     crashes = Ingestor(spark, api_url, target_path)
-
-
-if __name__ == "__main__":
-    spark = SparkSession.builder.getOrCreate()
-
-    main(spark)
