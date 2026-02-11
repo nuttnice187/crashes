@@ -17,6 +17,7 @@ from pyspark.sql.types import (
     DoubleType
 )
 
+
 def check_existing(
     spark: SparkSession, source: DataFrame, target_path: str, primary_key: str
     ) -> DataFrame:
@@ -33,6 +34,7 @@ def check_existing(
 class Default(Enum):
     SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
     TARGET_PATH = "workspace.google_drive.silver_table"
+    PRIMARY_KEY: str = "crash_record_id"
 
 class Location(Enum):
     SCHEMA = StructType([
@@ -104,13 +106,16 @@ class Curator:
     source: DataFrame
     target: DataFrame
     def __init__(
-            self,
-            spark: SparkSession, 
-            logger: Logger, 
-            source_path: DataFrame,
-            target_path: str,
-            run_id: str
-            ) -> None:
+        self,
+        spark: SparkSession, 
+        logger: Logger, 
+        source_path: DataFrame,
+        target_path: str,
+        run_id: str
+        ) -> None:
+        """
+        constructor
+        """
         self.spark = spark
         self.logger = logger
         self.source_path = source_path
@@ -119,6 +124,9 @@ class Curator:
         self.run()
     
     def run(self) -> None:
+        """
+        run
+        """
         self.extract(spark, source_path)
         self.transform(*Target.COLS.value)
         self.load()
@@ -137,7 +145,7 @@ class Curator:
             spark=self.spark, 
             source=self.source.select(*cols).withColumn(lit(self.run_id).alias("run_id")), 
             target_path=self.target_path, 
-            primary_key="crash_record_id"
+            primary_key=Default.PRIMARY_KEY.value
             )    
     
     def load(self) -> None:
@@ -151,7 +159,9 @@ class Curator:
 def main(
     spark: SparkSession, logger: Logger, args: Namespace
     ) -> None:
-    """transform location"""
+    """
+    Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
+    """
     Curator(
         spark=spark, 
         logger=logger, 
