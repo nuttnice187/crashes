@@ -127,15 +127,15 @@ class Curator:
         """
         run
         """
-        self.extract(spark, source_path)
+        self.extract()
         self.transform(*Target.COLS.value)
         self.load()
     
-    def extract(self, source_path: str) -> None:
+    def extract(self) -> None:
         """
         extract bronze data
         """
-        self.source: DataFrame = self.spark.read.parquet(source_path)
+        self.source: DataFrame = self.spark.read.parquet(self.source_path)
         
     def transform(self, *cols: Column) -> None:
         """
@@ -143,7 +143,7 @@ class Curator:
         """
         self.target: DataFrame = check_existing(
             spark=self.spark, 
-            source=self.source.select(*cols).withColumn(lit(self.run_id).alias("run_id")), 
+            source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
             target_path=self.target_path, 
             primary_key=Default.PRIMARY_KEY.value
             )    
@@ -153,7 +153,7 @@ class Curator:
         write silver table
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        self.target.write.mode("append").format("delta").save(self.target_path)
+        self.target.write.mode("append").format("delta").saveAsTable(self.target_path)
     
 
 def main(
