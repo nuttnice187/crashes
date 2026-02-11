@@ -8,13 +8,8 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.column import Column
 from pyspark.sql.functions import col, to_timestamp, from_json, lit
 from pyspark.sql.types import (
-    ArrayType,
-    StructType,
-    StructField,
-    StringType,
-    IntegerType,
-    TimestampType,
-    DoubleType
+    ArrayType, StructType, StructField, StringType, IntegerType,
+    TimestampType, DoubleType
 )
 
 
@@ -32,17 +27,26 @@ def check_existing(
 
 
 class Default(Enum):
+    """
+    Enumeration of default values
+    """
     SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
     TARGET_PATH = "workspace.google_drive.silver_table"
     PRIMARY_KEY: str = "crash_record_id"
 
 class Location(Enum):
+    """
+    Enumeration of columns to select from the bronze data
+    """
     SCHEMA = StructType([
         StructField("type", StringType()),
         StructField("coordinates", ArrayType(DoubleType()))
     ])
 
 class Target(Enum):
+    """
+    Enumeration of columns to select from the bronze data
+    """
     COLS = (
         col("computed_region_rpca_8um6"),
         col("alignment"),
@@ -98,6 +102,9 @@ class Target(Enum):
         )
     
 class Curator:
+    """
+    Curator class
+    """
     spark: SparkSession
     logger: Logger
     source_path: DataFrame
@@ -106,12 +113,8 @@ class Curator:
     source: DataFrame
     target: DataFrame
     def __init__(
-        self,
-        spark: SparkSession, 
-        logger: Logger, 
-        source_path: DataFrame,
-        target_path: str,
-        run_id: str
+        self, spark: SparkSession, logger: Logger, source_path: DataFrame,
+        target_path: str, run_id: str
         ) -> None:
         """
         constructor
