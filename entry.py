@@ -3,14 +3,23 @@ import sys
 from argparse import ArgumentParser, Namespace
 from importlib import import_module
 
-from logging import Logger, getLogger, INFO
+from logging import getLogger, INFO, Formatter, Logger, StreamHandler
 from typing import Callable
 
 from pyspark.sql import SparkSession
-    
+
 ROOT: str = "crashes"
+
 L: Logger = getLogger(__name__)
 L.setLevel(INFO)
+
+console_handler = StreamHandler()
+console_handler.setLevel(INFO)
+
+formatter = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+
+L.addHandler(console_handler)
 
 
 def parse_argv() -> Namespace:

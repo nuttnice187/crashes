@@ -14,15 +14,22 @@ from pyspark.sql.types import (
 
 
 def check_existing(
-    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str
+    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str,
+    logger: Logger
     ) -> DataFrame:
     """
     check existing
     """
     result = source
+
     if spark.catalog.tableExists(target_path):
         existing: DataFrame = spark.read.table(target_path)
         result = source.join(existing, primary_key, "left_anti")
+
+    logger.info(f"dropped {existing.count()} records from {source.count(
+        )} records")
+
+    logger.info(f"keeping {result.count()} records from {source.count()} records")
     return result
 
 
@@ -107,11 +114,12 @@ class Curator:
     """
     spark: SparkSession
     logger: Logger
-    source_path: DataFrame
+    source_path: str
     target_path: str
     run_id: str
     source: DataFrame
     target: DataFrame
+
     def __init__(
         self, spark: SparkSession, logger: Logger, source_path: DataFrame,
         target_path: str, run_id: str
@@ -148,7 +156,8 @@ class Curator:
             spark=self.spark, 
             source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
             target_path=self.target_path, 
-            primary_key=Default.PRIMARY_KEY.value
+            primary_key=Default.PRIMARY_KEY.value,
+            logger=self.logger
             )    
     
     def load(self) -> None:
