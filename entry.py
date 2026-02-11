@@ -7,12 +7,18 @@ from logging import Logger, getLogger, INFO
 from typing import Callable
 
 from pyspark.sql import SparkSession
-
+    
+ROOT: str = "crashes"
 L: Logger = getLogger(__name__)
 L.setLevel(INFO)
 
-if __name__ == "__main__":    
-    args: Namespace
+
+def parse_argv() -> Namespace:
+    """
+    Parse command line arguments
+    Returns:
+        Namespace: parsed arguments
+    """
     parser = ArgumentParser(description="Ingest data from API into Spark and save as Parquet."
         "Curate silver delta table from ingested datasource."
         "Present gold delta table from curated change feed."
@@ -26,10 +32,14 @@ if __name__ == "__main__":
     parser.add_argument('--run_id', type=str, help='databricks metadata for job run.')
     
     args, unknown = parser.parse_known_args()
+    return args
+
+
+if __name__ == "__main__":
+    args: Namespace = parse_argv()  
     L.info(args)
-    
-    ROOT: str = 'crashes'
-    module: str = "{package}.{module}".format(package=args.job, module=args.task)
+
+    module: str = "{package}.{module}".format(package=args.job, module=args.task) 
     
     if ROOT not in sys.path:
         sys.path.insert(0, ROOT)
