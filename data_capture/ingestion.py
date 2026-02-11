@@ -36,8 +36,6 @@ class Ingestor:
         self.transform(spark, target_path)
         self.load(target_path)
 
-        self.logger.info('hello')
-
     def extract(self, api_url: str) -> None:
         """
         Fetches data from a given API URL and creates a Spark DataFrame from it.
@@ -111,7 +109,7 @@ class Ingestor:
 
 def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
-    Main entry point for the script.
+    Instantiates the Ingestor class with the provided arguments.
     """
     Ingestor(
         spark=spark,
