@@ -8,41 +8,52 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.column import Column
 from pyspark.sql.functions import col, to_timestamp, from_json, lit
 from pyspark.sql.types import (
-    ArrayType,
-    StructType,
-    StructField,
-    StringType,
-    IntegerType,
-    TimestampType,
-    DoubleType
+    ArrayType, StructType, StructField, StringType, IntegerType,
+    TimestampType, DoubleType
 )
 
 
 def check_existing(
-    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str
+    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str,
+    logger: Logger
     ) -> DataFrame:
     """
     check existing
     """
     result = source
+
     if spark.catalog.tableExists(target_path):
         existing: DataFrame = spark.read.table(target_path)
         result = source.join(existing, primary_key, "left_anti")
+
+    logger.info(f"dropped {existing.count()} records from {source.count(
+        )} records")
+
+    logger.info(f"keeping {result.count()} records from {source.count()} records")
     return result
 
 
 class Default(Enum):
+    """
+    Enumeration of default values
+    """
     SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
     TARGET_PATH = "workspace.google_drive.silver_table"
     PRIMARY_KEY: str = "crash_record_id"
 
 class Location(Enum):
+    """
+    Enumeration of columns to select from the bronze data
+    """
     SCHEMA = StructType([
         StructField("type", StringType()),
         StructField("coordinates", ArrayType(DoubleType()))
     ])
 
 class Target(Enum):
+    """
+    Enumeration of columns to select from the bronze data
+    """
     COLS = (
         col("computed_region_rpca_8um6"),
         col("alignment"),
@@ -98,20 +109,20 @@ class Target(Enum):
         )
     
 class Curator:
+    """
+    Curator class
+    """
     spark: SparkSession
     logger: Logger
-    source_path: DataFrame
+    source_path: str
     target_path: str
     run_id: str
     source: DataFrame
     target: DataFrame
+
     def __init__(
-        self,
-        spark: SparkSession, 
-        logger: Logger, 
-        source_path: DataFrame,
-        target_path: str,
-        run_id: str
+        self, spark: SparkSession, logger: Logger, source_path: DataFrame,
+        target_path: str, run_id: str
         ) -> None:
         """
         constructor
@@ -145,7 +156,8 @@ class Curator:
             spark=self.spark, 
             source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
             target_path=self.target_path, 
-            primary_key=Default.PRIMARY_KEY.value
+            primary_key=Default.PRIMARY_KEY.value,
+            logger=self.logger
             )    
     
     def load(self) -> None:
