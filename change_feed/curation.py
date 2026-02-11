@@ -98,10 +98,10 @@ class Target(Enum):
         )
     
 class Curator:
-    spark: SparkSession, 
-    logger: Logger, 
-    source_path: DataFrame,
-    target_path: str,
+    spark: SparkSession
+    logger: Logger
+    source_path: DataFrame
+    target_path: str
     run_id: str
     source: DataFrame
     target: DataFrame
