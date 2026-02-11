@@ -113,7 +113,9 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Main entry point for the script.
     """
-    api_url: str = args.api_url if args.api_url else Default.API_URL.value
-    target_path: str = args.target_path if args.target_path else Default.TARGET_PATH.value
-
-    Ingestor(spark, logger, api_url, target_path)
+    Ingestor(
+        spark=spark,
+        logger=logger,
+        api_url=args.api_url if args.api_url else Default.API_URL.value
+        target_path=args.target_path if args.target_path else Default.TARGET_PATH.value
+    )
