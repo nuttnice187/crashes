@@ -1,10 +1,12 @@
+from argparse import Namespace
 from enum import Enum
 from logging import Logger
 from typing import Optional
 
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
-from pyspark.sql.functions import col, to_timestamp, from_json
+from pyspark.sql.column import Column
+from pyspark.sql.functions import col, to_timestamp, from_json, lit
 from pyspark.sql.types import (
     ArrayType,
     StructType,
@@ -14,6 +16,25 @@ from pyspark.sql.types import (
     TimestampType,
     DoubleType
 )
+
+
+def check_existing(
+    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str
+    ) -> DataFrame:
+    """
+    check existing
+    """
+    result = source
+    if spark.catalog.tableExists(target_path):
+        existing: DataFrame = spark.read.table(target_path)
+        result = source.join(existing, primary_key, "left_anti")
+    return result
+
+
+class Default(Enum):
+    SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
+    TARGET_PATH = "workspace.google_drive.silver_table"
+    PRIMARY_KEY: str = "crash_record_id"
 
 class Location(Enum):
     SCHEMA = StructType([
@@ -26,14 +47,16 @@ class Target(Enum):
         col("computed_region_rpca_8um6"),
         col("alignment"),
         col("beat_of_occurrence"),
-        to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("crash_date"),
+        to_timestamp(col("crash_date"), 
+                     "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("crash_date"),
         col("crash_day_of_week").cast(IntegerType()),
         col("crash_hour").cast(IntegerType()),
         col("crash_month").cast(IntegerType()),
         col("crash_record_id"),
         col("crash_type"),
         col("damage"),
-        to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("date_police_notified"),
+        to_timestamp(col("date_police_notified"), 
+                     "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("date_police_notified"),
         col("device_condition"),
         col("first_crash_type"),
         col("injuries_fatal").cast(IntegerType()),
@@ -73,15 +96,76 @@ class Target(Enum):
         col("dooring_i"),
         col("ingest_time")
         )
-
+    
+class Curator:
+    spark: SparkSession
+    logger: Logger
+    source_path: DataFrame
+    target_path: str
+    run_id: str
+    source: DataFrame
+    target: DataFrame
+    def __init__(
+        self,
+        spark: SparkSession, 
+        logger: Logger, 
+        source_path: DataFrame,
+        target_path: str,
+        run_id: str
+        ) -> None:
+        """
+        constructor
+        """
+        self.spark = spark
+        self.logger = logger
+        self.source_path = source_path
+        self.target_path = target_path
+        self.run_id = run_id
+        self.run()
+    
+    def run(self) -> None:
+        """
+        run
+        """
+        self.extract()
+        self.transform(*Target.COLS.value)
+        self.load()
+    
+    def extract(self) -> None:
+        """
+        extract bronze data
+        """
+        self.source: DataFrame = self.spark.read.parquet(self.source_path)
+        
+    def transform(self, *cols: Column) -> None:
+        """
+        transform bronze data into the silver table
+        """
+        self.target: DataFrame = check_existing(
+            spark=self.spark, 
+            source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
+            target_path=self.target_path, 
+            primary_key=Default.PRIMARY_KEY.value
+            )    
+    
+    def load(self) -> None:
+        """
+        write silver table
+        """
+        self.logger.info(f"writing silver table to {self.target_path}")
+        self.target.write.mode("append").format("delta").saveAsTable(self.target_path)
+    
 
 def main(
-    spark: SparkSession, logger: Logger, source_path: str, 
-    target_path: Optional[str] = None, 
-    run_id: Optional[str] = None
+    spark: SparkSession, logger: Logger, args: Namespace
     ) -> None:
-    """transform location"""
-    target = (spark.read.parquet(source_path)
-              .select(*Target.COLS.value)
-              .withColumn(lit(run_id).alias("run_id")))
-    # target.write.mode("append").format("delta").save(target_path)
+    """
+    Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
+    """
+    Curator(
+        spark=spark, 
+        logger=logger, 
+        source_path=args.source_path if args.source_path else Default.SOURCE_PATH.value, 
+        target_path=args.target_path if args.target_path else Default.TARGET_PATH.value,
+        run_id=args.run_id
+    )
