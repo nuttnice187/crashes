@@ -41,11 +41,13 @@ resources:
         - name: api_url
           default: https://data.cityofchicago.org/resource/85ca-t3if.json
         - name: external_path
-          default: "/Volumes/workspace/google_drive/mock_s3"
+          default: /Volumes/workspace/google_drive/mock_s3
+        - name: bronze_table
+          default: workspace.google_drive.bronze_crashes
         - name: silver_table
-          default: "workspace.google_drive.silver_crashes"
+          default: workspace.google_drive.silver_crashes
         - name: gold_table
-          default: "workspace.google_drive.gold_crashes"
+          default: workspace.google_drive.gold_crashes
       environments:
         - environment_key: Default
           spec:
