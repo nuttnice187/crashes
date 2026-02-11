@@ -26,8 +26,7 @@ def check_existing(
         existing: DataFrame = spark.read.table(target_path)
         result = source.join(existing, primary_key, "left_anti")
 
-    logger.info(f"dropped {existing.count()} records from {source.count(
-        )} records")
+    logger.info(f"dropped {existing.count()} records from {source.count()} records")
 
     logger.info(f"keeping {result.count()} records from {source.count()} records")
     return result
