@@ -38,7 +38,6 @@ class Default(Enum):
     """
     SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
     TARGET_PATH = "workspace.google_drive.silver_table"
-    PRIMARY_KEY: str = "crash_record_id"
 
 class Location(Enum):
     """
@@ -106,6 +105,7 @@ class Target(Enum):
         col("dooring_i"),
         col("ingest_time")
         )
+    PRIMARY_KEY: str = "crash_record_id"
     
 class Curator:
     """
@@ -155,7 +155,7 @@ class Curator:
             spark=self.spark, 
             source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
             target_path=self.target_path, 
-            primary_key=Default.PRIMARY_KEY.value,
+            primary_key=Target.PRIMARY_KEY.value,
             logger=self.logger
             )    
     
