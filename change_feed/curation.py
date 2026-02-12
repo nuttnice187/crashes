@@ -105,7 +105,7 @@ class Target(Enum):
         col("dooring_i"),
         col("ingest_time")
         )
-    PRIMARY_KEY: str = "crash_record_id"
+    PRIMARY_KEY = "crash_record_id"
     
 class Curator:
     """
