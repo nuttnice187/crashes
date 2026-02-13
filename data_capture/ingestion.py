@@ -107,7 +107,9 @@ class Ingestor:
         self.target.write.mode('append').parquet(target_path)
 
 
-def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
+def main(
+    spark: SparkSession, logger: Logger, args: Namespace
+    ) -> None:
     """
     Instantiates the Ingestor class with the provided arguments.
     """

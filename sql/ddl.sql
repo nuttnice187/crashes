@@ -1,1 +1,1 @@
-CREATE TABLE {bronze_table} USING PARQUET LOCATION '{external_path}';
+CREATE TABLE {bronze_table} USING PARQUET LOCATION '{{external_path}}';
