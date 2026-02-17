@@ -10,6 +10,7 @@ from requests.adapters import HTTPAdapter
 from pyspark.sql import DataFrame, SparkSession
 
 from pyspark.sql.functions import current_timestamp, to_timestamp, year
+from pyspark.sql.types import IntegerType
 from urllib3.util.retry import Retry
 
 class Default(Enum):
@@ -71,6 +72,7 @@ class Ingestor:
         self.target: DataFrame = (
             spark.createDataFrame(source_copy)
                 .withColumn('ingest_time', current_timestamp())
+                .withColumn('crash_month', col("crash_month").cast(IntegerType()))
                 .withColumn('crash_year', year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")))
                 .withColumnRenamed(":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
         )
