@@ -41,7 +41,7 @@ class Default(Enum):
 
 class Location(Enum):
     """
-    Enumeration of columns to select from the bronze data
+    Enumeration of StructFields to select from the location values
     """
     SCHEMA = StructType([
         StructField("type", StringType()),
