@@ -1,5 +1,4 @@
 import json
-import time
 
 from argparse import Namespace
 from enum import Enum
@@ -14,6 +13,9 @@ from pyspark.sql.functions import current_timestamp
 from urllib3.util.retry import Retry
 
 class Default(Enum):
+    """
+    Enumerate default parameter values
+    """
     API_URL = "https://data.cityofchicago.org/resource/85ca-t3if.json"
     TARGET_PATH = "/content/drive/MyDrive/crashes_data"
 
@@ -108,7 +110,7 @@ class Ingestor:
 
 
 def main(
-    spark: SparkSession, logger: Logger, args: Namespace
+        spark: SparkSession, logger: Logger, args: Namespace
     ) -> None:
     """
     Instantiates the Ingestor class with the provided arguments.
