@@ -60,7 +60,7 @@ class Target(Enum):
                      "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("crash_date"),
         col("crash_day_of_week").cast(IntegerType()),
         col("crash_hour").cast(IntegerType()),
-        col("crash_month").cast(IntegerType()),
+        col("crash_month"),
         col("crash_record_id"),
         col("crash_type"),
         col("damage"),
