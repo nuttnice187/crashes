@@ -120,8 +120,8 @@ class Curator:
     target: DataFrame
 
     def __init__(
-        self, spark: SparkSession, logger: Logger, source_path: DataFrame,
-        target_path: str, run_id: str
+            self, spark: SparkSession, logger: Logger, 
+            source_path: str, target_path: str, run_id: str
         ) -> None:
         """
         constructor
@@ -168,11 +168,12 @@ class Curator:
     
 
 def main(
-    spark: SparkSession, logger: Logger, args: Namespace
+        spark: SparkSession, logger: Logger, args: Namespace
     ) -> None:
     """
     Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
     """
+    assert args.run_id, "--run_id is required."
     Curator(
         spark=spark, 
         logger=logger, 
