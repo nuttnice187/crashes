@@ -164,7 +164,7 @@ class Curator:
         write silver table
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        self.target.write.mode("append").format("delta").saveAsTable(self.target_path)
+        self.target.write.format("delta").mode("append").partitionBy("crash_month", "crash_year").saveAsTable(self.target_path)
     
 
 def main(
