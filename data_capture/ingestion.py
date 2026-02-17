@@ -71,9 +71,9 @@ class Ingestor:
 
         self.target: DataFrame = (
             spark.createDataFrame(source_copy)
-                .withColumn('ingest_time', current_timestamp())
                 .withColumn('crash_month', col("crash_month").cast(IntegerType()))
                 .withColumn('crash_year', year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")))
+                .withColumn('ingest_time', current_timestamp())
                 .withColumnRenamed(":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
         )
 
