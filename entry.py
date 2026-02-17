@@ -47,6 +47,9 @@ def parse_argv() -> Namespace:
 if __name__ == "__main__":
     args: Namespace = parse_argv()  
     L.info(args)
+    
+    assert args.job, "--job is required."
+    assert args.task, "--task is required."
 
     module: str = "{package}.{module}".format(package=args.job, module=args.task) 
     
