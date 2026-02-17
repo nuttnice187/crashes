@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 from requests.adapters import HTTPAdapter
 from pyspark.sql import DataFrame, SparkSession
 
-from pyspark.sql.functions import current_timestamp
+from pyspark.sql.functions import current_timestamp, to_timestamp, year
 from urllib3.util.retry import Retry
 
 class Default(Enum):
@@ -73,6 +73,7 @@ class Ingestor:
         self.target: DataFrame = (
             spark.createDataFrame(source_copy)
                 .withColumn('ingest_time', current_timestamp())
+                .withColumn('crash_year', year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")))
                 .withColumnRenamed(":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
         )
 
@@ -106,7 +107,7 @@ class Ingestor:
         """
         Writes the transformed data to a Parquet file in the specified target path.
         """
-        self.target.write.mode('append').parquet(target_path)
+        self.target.write.mode('append').partitionBy('crash_month', 'crash_year').parquet(target_path)
 
 
 def main(
