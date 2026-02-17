@@ -25,8 +25,6 @@ class Ingestor:
     Ingests data from a given API URL, transforms it, and loads it into a Parquet file.
     """
     logger: Logger
-    api_url: str
-    target_path: str
     source: List[Dict]
     target: DataFrame
 
