@@ -28,7 +28,9 @@ class Ingestor:
     source: List[Dict]
     target: DataFrame
 
-    def __init__(self, spark: SparkSession, logger: Logger, api_url: str, target_path: str) -> None:
+    def __init__(
+            self, spark: SparkSession, logger: Logger, api_url: str, target_path: str
+        ) -> None:
         """
         Initializes the Ingestor with the provided SparkSession, API URL, and target path.
         """
