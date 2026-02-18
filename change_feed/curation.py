@@ -136,7 +136,7 @@ class Curator:
         
         if self.spark.catalog.tableExists(self.target_path):
             existing: DataFrame = self.spark.read.table(self.target_path)
-            self.target: DataFrame = self.target.join(existing, primary_key, "left_anti")
+            self.target: DataFrame = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
             
             self.logger.info(f"dropped {existing.count()} records from {self.source.count()} records")
     
