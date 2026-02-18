@@ -21,7 +21,7 @@ class Default(Enum):
 
 class Location(Enum):
     """
-    Enumeration of StructFields to select from the location values
+    Enumeration of StructFields to select from the location column's JSON string values
     """
     SCHEMA = StructType([
         StructField("type", StringType()),
@@ -30,7 +30,9 @@ class Location(Enum):
 
 class Target(Enum):
     """
-    Enumeration of columns to select from the bronze data
+    Enumeration of target dataframe properties:
+        1. columns to curate from the bronze data
+        2. primary key column name
     """
     COLS = (
         col("computed_region_rpca_8um6"),
