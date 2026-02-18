@@ -42,9 +42,7 @@ class Target(Enum):
     Enamerate target delta table properties
     """
     CALCULATED = (
-        year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"))
-            .cast(StringType())
-            .alias("crash_year"),
+        year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")).cast(StringType()).alias("crash_year"),
         current_timestamp().alias("ingest_date")
     )
     RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
