@@ -84,7 +84,7 @@ class Presentor:
 
     def load(self) -> None:
         """
-        Write to bronze delta table
+        Write to gold delta table
         """
         if self.spark.catalog.tableExists(self.config.target_table):
             target = DeltaTable.forName(self.spark, self.config.target_table)
