@@ -89,6 +89,7 @@ class Target(Enum):
         col("ingest_time")
         )
     PRIMARY_KEY = "crash_record_id"
+    PARTITION = ("crash_month", "crash_year")
     
 class Curator:
     """
@@ -150,7 +151,7 @@ class Curator:
         writer: DataFrameWriter = (self.target.write
                                    .format("delta")
                                    .mode("append")
-                                   .partitionBy("crash_month", "crash_year"))
+                                   .partitionBy(*Target.PARTITION.value))
         writer.saveAsTable(self.target_path)
     
 
