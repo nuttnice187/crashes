@@ -11,7 +11,7 @@ from requests import get, Response, Session
 from requests.adapters import HTTPAdapter
 
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
-from pyspark.sql.functions import current_timestamp, to_timestamp, year
+from pyspark.sql.functions import col, current_timestamp, to_timestamp, year
 from pyspark.sql.types import StringType
 
 
@@ -38,6 +38,9 @@ class Default(Enum):
     TARGET_PATH = "/content/drive/MyDrive/crashes_data"
 
 class Target(Enum):
+    """
+    Enamerate target delta table properties
+    """
     CALCULATED = (
         year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"))
             .cast(StringType())
