@@ -3,7 +3,7 @@ from enum import Enum
 from logging import Logger
 from typing import Optional
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
 from pyspark.sql.column import Column
 from pyspark.sql.functions import col, to_timestamp, from_json, lit
@@ -149,7 +149,8 @@ class Curator:
         write silver table
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        self.target.write.format("delta").mode("append").partitionBy("crash_month", "crash_year").saveAsTable(self.target_path)
+        writer: DataFrameWriter = self.target.write.format("delta").mode("append").partitionBy("crash_month", "crash_year")
+        writer.saveAsTable(self.target_path)
     
 
 def main(
