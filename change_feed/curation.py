@@ -43,8 +43,9 @@ class Location(Enum):
 class Target(Enum):
     """
     Enumeration of target dataframe properties:
-        1. columns to curate from the bronze data
-        2. primary key column name
+        - COLS: columns to curate from the bronze data
+        - PRIMARY_KEY: primary key column name
+        - PARTITION: partition columns
     """
 
     COLS = (
