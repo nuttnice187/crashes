@@ -71,9 +71,9 @@ class Presentor:
             )
             .agg(
                 count("*").alias("crash_records"),
-                sum(col("injuries_fatal")).alias("fatalities"),
-                sum(col("injuries_total")).alias("injuries"),
-                max(col("ingest_date")).alias("max_ingest_date"),
+                sum("injuries_fatal").alias("fatalities"),
+                sum("injuries_total").alias("injuries"),
+                max("ingest_date").alias("max_ingest_date"),
             )
             .withColumn(
                 "hash_key",
