@@ -41,10 +41,6 @@ class Target(Enum):
     """
     Enamerate target delta table properties
     """
-    CALCULATED = (
-        year(to_timestamp("crash_date", "yyyy-MM-dd'T'HH:mm:ss.SSS")).cast(StringType()).alias("crash_year"),
-        current_timestamp().alias("ingest_date")
-    )
     RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
     PRIMARY_KEY = "crash_record_id"
     PARTITION = ("crash_month", "crash_year")
@@ -92,7 +88,11 @@ class Ingestor:
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
         self.target = (spark.createDataFrame(dump_location(self.source))
-            .select('*', *Target.CALCULATED.value)
+            .select('*',
+                    year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"))
+                    .cast(StringType()).alias("crash_year"),
+                    current_timestamp().alias("ingest_date")
+                   )
             .withColumnRenamed(*Target.RENAMED.value))
 
         self.check_existing(spark, target_path)
