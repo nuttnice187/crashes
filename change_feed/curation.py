@@ -12,26 +12,6 @@ from pyspark.sql.types import (
     TimestampType, DoubleType
 )
 
-
-def check_existing(
-    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str,
-    logger: Logger
-    ) -> DataFrame:
-    """
-    check existing
-    """
-    result = source
-
-    if spark.catalog.tableExists(target_path):
-        existing: DataFrame = spark.read.table(target_path)
-        result = source.join(existing, primary_key, "left_anti")
-        
-        logger.info(f"dropped {existing.count()} records from {source.count()} records")
-
-    logger.info(f"keeping {result.count()} records from {source.count()} records")
-    return result
-
-
 class Default(Enum):
     """
     Enumeration of default values
@@ -152,13 +132,15 @@ class Curator:
         """
         transform bronze data into the silver table
         """
-        self.target: DataFrame = check_existing(
-            spark=self.spark, 
-            source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
-            target_path=self.target_path, 
-            primary_key=Target.PRIMARY_KEY.value,
-            logger=self.logger
-            )    
+        self.target: DataFrame = self.source.select(*cols).withColumn("run_id", lit(self.run_id))
+        
+        if self.spark.catalog.tableExists(self.target_path):
+            existing: DataFrame = self.spark.read.table(self.target_path)
+            self.target: DataFrame = self.target.join(existing, primary_key, "left_anti")
+            
+            self.logger.info(f"dropped {existing.count()} records from {self.source.count()} records")
+    
+        logger.info(f"keeping {result.count()} records from {source.count()} records")
     
     def load(self) -> None:
         """
@@ -175,6 +157,7 @@ def main(
     Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
     """
     assert args.run_id, "--run_id is required."
+        
     Curator(
         spark=spark, 
         logger=logger, 
