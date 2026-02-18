@@ -46,6 +46,7 @@ class Target(Enum):
     )
     RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
     PRIMARY_KEY = "crash_record_id"
+    PARTITION = ("crash_month", "crash_year")
     
 class Ingestor:
     """
@@ -122,8 +123,7 @@ class Ingestor:
         Writes the transformed data to a Parquet file in the specified target path.
         """
         writer: DataFrameWriter = (self.target.write
-                                   .mode('append')
-                                   .partitionBy('crash_month', 'crash_year'))
+                                   .mode('append').partitionBy(*Target.PARTITION.value))
         writer.parquet(target_path)
 
 
