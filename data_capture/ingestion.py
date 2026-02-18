@@ -10,7 +10,7 @@ from urllib3.util.retry import Retry
 from requests import get, Response, Session
 from requests.adapters import HTTPAdapter
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 from pyspark.sql.functions import current_timestamp, to_timestamp, year
 from pyspark.sql.types import StringType
 
