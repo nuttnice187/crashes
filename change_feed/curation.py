@@ -140,7 +140,7 @@ class Curator:
             existing: DataFrame = self.spark.read.table(self.target_path)
             self.target = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
     
-        logger.info(f"keeping {result.count()} records from {source.count()} records")
+        logger.info(f"keeping {self.target.count()} records from {source.count()} records")
     
     def load(self) -> None:
         """
