@@ -79,10 +79,8 @@ class Ingestor:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        source_copy: List[Dict] = dump_location(self.source)
-
         self.target: DataFrame = (
-            spark.createDataFrame(source_copy)
+            spark.createDataFrame(dump_location(self.source))
                 .withColumn('crash_year', 
                             year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
                                 ).cast(StringType()))
@@ -94,7 +92,7 @@ class Ingestor:
 
     def check_existing(self, spark: SparkSession, target_path: str) -> None:
         """
-        Checks for existing data in the target path and performs incremental loading.
+        Checks for existing data in the target path and filters transformation for incremental loading.
         """
         existing: Optional[DataFrame] = None
         
@@ -105,14 +103,12 @@ class Ingestor:
             self.logger.warning(f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data.")
 
         if existing is not None and not existing.isEmpty():
-            join_column = 'crash_record_id'
-            if join_column in self.target.columns and join_column in existing.columns:
-                self.target = (self.target
-                    .join(existing, on=join_column, how='left_anti'))
-                self.logger.info(f"Performed left_anti join with existing data on '{join_column}'. New records count: {self.target.count()}")
+            primary_key = 'crash_record_id'
+            if primary_key in self.target.columns and primary_key in existing.columns:
+                self.target = self.target.join(existing, on=primary_key, how='left_anti')
+                self.logger.info(f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.target.count()}")
             else:
-                self.logger.warning(f"Cannot perform left_anti join: '{join_column}' not found in one or both dataframes. Loading all data from source.")
-
+                self.logger.warning(f"Cannot perform left_anti join: '{primary_key}' not found in one or both dataframes. Loading all data from source.")
         else:
             self.logger.info("No existing data to join with, or existing data is empty. Loading all data from source.")
 
