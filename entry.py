@@ -16,7 +16,7 @@ L.setLevel(INFO)
 console_handler = StreamHandler()
 console_handler.setLevel(INFO)
 
-formatter = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(formatter)
 
 L.addHandler(console_handler)
@@ -28,36 +28,39 @@ def parse_argv() -> Namespace:
     Returns:
         Namespace: parsed arguments
     """
-    parser = ArgumentParser(description="Ingest data from API into Spark and save as Parquet."
+    parser = ArgumentParser(
+        description="Ingest data from API into Spark and save as Parquet."
         "Curate silver delta table from ingested datasource."
         "Present gold delta table from curated change feed."
-        )    
-    
-    parser.add_argument('--job', type=str, help='Python package name.')
-    parser.add_argument('--task', type=str, help='Python module name.')
-    parser.add_argument('--api_url', type=str, help='API URL to fetch data from.')
-    parser.add_argument('--source_path', type=str, help='Source path to read from.')
-    parser.add_argument('--target_path', type=str, help='Target path to write to.')
-    parser.add_argument('--run_id', type=str, help='databricks metadata for job run.')
-    
+    )
+
+    parser.add_argument("--job", type=str, help="Python package name.")
+    parser.add_argument("--task", type=str, help="Python module name.")
+    parser.add_argument("--api_url", type=str, help="API URL to fetch data from.")
+    parser.add_argument("--source_path", type=str, help="Source path to read from.")
+    parser.add_argument("--target_path", type=str, help="Target path to write to.")
+    parser.add_argument("--run_id", type=str, help="databricks metadata for job run.")
+
     args, unknown = parser.parse_known_args()
     return args
 
 
 if __name__ == "__main__":
-    args: Namespace = parse_argv()  
+    args: Namespace = parse_argv()
     L.info(args)
-    
+
     assert args.job, "--job is required."
     assert args.task, "--task is required."
 
-    job_task: str = "{package}.{module}".format(package=args.job, module=args.task) 
-    
+    job_task: str = "{package}.{module}".format(package=args.job, module=args.task)
+
     if ROOT in sys.path:
         L.info(f"'{ROOT}' already in sys.path")
     else:
         sys.path.insert(0, ROOT)
         L.info(f"Added '{ROOT}' to sys.path")
 
-    main: Callable[[SparkSession, Logger, Namespace], None] = import_module(job_task).main
+    main: Callable[[SparkSession, Logger, Namespace], None] = import_module(
+        job_task
+    ).main
     main(SparkSession.builder.getOrCreate(), L, args)
