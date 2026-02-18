@@ -1,26 +1,40 @@
 from argparse import Namespace
+from enum import Enum
 from logging import Logger
 from typing import Dict
 
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession, DataFrame, DataFrameWriter
 
-from pyspark.sql.functions import sha1, to_json, struct, lit, col, count
+from pyspark.sql.functions import sha1, to_json, struct, lit, col, count, sum, max
 from pyspark.sql.types import DateType
+
+
+class Target(Enum):
+    """
+    Target table properties
+    """
+
+    MERGE_CONDITION = "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date"
+    MATCH_CONDITION = "t.hash_key != s.hash_key"
+
 
 class Config:
     """
     Configuration class for the notebook
     """
+
     def __init__(self, args: Namespace):
         self.source_table = args.source_path
         self.target_table = args.target_path
         self.run_id = args.run_id
 
+
 class Presentor:
     """
     Presentor class for the notebook
     """
+
     def __init__(self, spark: SparkSession, logger: Logger, config: Config) -> None:
         self.config = config
         self.logger = logger
@@ -50,21 +64,23 @@ class Presentor:
         1. Filter to specific level of detail
         2. Aggregation, summarization
         """
-        self.source = self.source.groupBy(
-            "crash_year",
-            "crash_month",
-            col("crash_date").cast(DateType()).alias("crash_date"),
-        ).agg(
-            count("*").alias("crash_records"),
-            col("injuries_fatal").sum().alias("fatalities"),
-            col("injuries_total").sum().alias("injuries"),
-            col("ingest_date").max().alias("max_ingest_date")
-        ).withColumn(
-            "hash_key", 
-            sha1(to_json(struct("crash_records", "fatalities", "injuries")))
-        ).withColumn(
-            "update_run_id",
-            lit(self.config.run_id)
+        self.source = (
+            self.source.groupBy(
+                "crash_year",
+                "crash_month",
+                col("crash_date").cast(DateType()).alias("crash_date"),
+            )
+            .agg(
+                count("*").alias("crash_records"),
+                sum(col("injuries_fatal")).alias("fatalities"),
+                sum(col("injuries_total")).alias("injuries"),
+                max(col("ingest_date")).alias("max_ingest_date"),
+            )
+            .withColumn(
+                "hash_key",
+                sha1(to_json(struct("crash_records", "fatalities", "injuries"))),
+            )
+            .withColumn("update_run_id", lit(self.config.run_id))
         )
 
     def load(self) -> None:
@@ -73,20 +89,25 @@ class Presentor:
         """
         if self.spark.catalog.tableExists(self.config.target_table):
             target = DeltaTable.forName(self.spark, self.config.target_table)
-
-            merge_metrics: Dict[str, int] = (target.alias("t")
-                .merge(self.source.alias("s"),
-                        "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date")
+            self.logger.info("Target table exists. Performing merge.")
+            merge_metrics: DataFrame = (
+                target.alias("t")
+                .merge(self.source.alias("s"), Target.MERGE_CONDITION.value)
                 .whenNotMatchedInsertAll()
-                .whenMatchedUpdateAll("t.hash_key != s.hash_key")
+                .whenMatchedUpdateAll(Target.MATCH_CONDITION.value)
                 .execute()
             )
-            self.logger.info(f"Delta merge metrics: {merge_metrics}")
+            [
+                self.logger.info("{}: {}".format(k, v))
+                for k, v in merge_metrics.collect()[0].asDict().items()
+            ]
         else:
-            writer: DataFrameWriter = (self.source.write
-                .format("delta")
+            self.logger("Target table does not exist. Creating new table")
+            writer: DataFrameWriter = (
+                self.source.write.format("delta")
                 .mode("overwrite")
-                .option("enableChangeDataFeed", "true"))
+                .option("enableChangeDataFeed", "true")
+            )
             writer.saveAsTable(self.config.target_table)
 
 
@@ -101,8 +122,4 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     assert args.target_path, "Target path is required"
     assert args.run_id, "Run id is required"
 
-    Presentor(
-        spark=spark, 
-        logger=logger, 
-        config=Config(args)
-        )
+    Presentor(spark=spark, logger=logger, config=Config(args))
