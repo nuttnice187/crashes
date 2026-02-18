@@ -90,7 +90,7 @@ class Ingestor:
         self.target = (spark.createDataFrame(dump_location(self.source))
             .select('*',
                     year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"))
-                    .cast(StringType()).alias("crash_year"),
+                    .alias("crash_year"),
                     current_timestamp().alias("ingest_date")
                    )
             .withColumnRenamed(*Target.RENAMED.value))
