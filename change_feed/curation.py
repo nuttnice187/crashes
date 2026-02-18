@@ -42,8 +42,8 @@ class Target(Enum):
                      "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("crash_date"),
         col("crash_day_of_week").cast(IntegerType()),
         col("crash_hour").cast(IntegerType()),
-        col("crash_month").cast(IntegerType()),
-        col("crash_year").cast(IntegerType()),
+        col("crash_month"),
+        col("crash_year"),
         col("crash_record_id"),
         col("crash_type"),
         col("damage"),
@@ -83,10 +83,8 @@ class Target(Enum):
         col("private_property_i"),
         col("crash_date_est_i"),
         col("work_zone_i"),
-        col("work_zone_type"),
-        col("workers_present_i"),
         col("dooring_i"),
-        col("ingest_time")
+        col("ingest_date")
         )
     PRIMARY_KEY = "crash_record_id"
     PARTITION = ("crash_month", "crash_year")
@@ -141,7 +139,7 @@ class Curator:
             existing: DataFrame = self.spark.read.table(self.target_path)
             self.target = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
     
-        logger.info(f"keeping {self.target.count()} records from {source.count()} records")
+        self.logger.info(f"keeping {self.target.count()} records from {self.source.count()} records")
     
     def load(self) -> None:
         """
