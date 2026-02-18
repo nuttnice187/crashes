@@ -44,9 +44,9 @@ class Presentor:
     def run(self) -> None:
         """
         Read from curated delta table and apply any required
-        1. Filter to specific level of detail
-        2. Aggregation, summarization
-        3. Write to bronze delta table
+        - Filter to specific level of detail
+        - Aggregation, summarization
+        - Write to gold delta table
         """
         self.extract()
         self.transform()
@@ -61,8 +61,7 @@ class Presentor:
     def transform(self) -> None:
         """
         Apply any required
-        1. Filter to specific level of detail
-        2. Aggregation, summarization
+        - Aggregation, summarization
         """
         self.source = (
             self.source.groupBy(
@@ -113,10 +112,7 @@ class Presentor:
 
 def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
-    Read from curated delta table and apply any required
-    1. Filter to specific level of detail
-    2. Aggregation, summarization
-    3. Write to bronze delta table
+    Instantiate the Presentor class
     """
     assert args.source_path, "Source path is required"
     assert args.target_path, "Target path is required"
