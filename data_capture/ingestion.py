@@ -3,15 +3,32 @@ import json
 from argparse import Namespace
 from enum import Enum
 from logging import Logger
-from requests import get, Response, Session
 from typing import Dict, List, Optional
 
-from requests.adapters import HTTPAdapter
-from pyspark.sql import DataFrame, SparkSession
+from urllib3.util.retry import Retry
 
+from requests import get, Response, Session
+from requests.adapters import HTTPAdapter
+
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import current_timestamp, to_timestamp, year
 from pyspark.sql.types import StringType
-from urllib3.util.retry import Retry
+
+
+def dump_location(source: List[Dict]) -> List[Dict]:
+    """
+    convert location values of the api response to a json string
+    """
+    result = source.copy()
+    for item in result:
+        if 'location' in item and item['location'] is not None:
+            location_value = item['location']
+            if isinstance(location_value, (dict, list)):
+                item['location'] = json.dumps(location_value)
+            else:
+                item['location'] = str(location_value)
+    return result
+
 
 class Default(Enum):
     """
@@ -19,7 +36,7 @@ class Default(Enum):
     """
     API_URL = "https://data.cityofchicago.org/resource/85ca-t3if.json"
     TARGET_PATH = "/content/drive/MyDrive/crashes_data"
-
+    
 class Ingestor:
     """
     Ingests data from a given API URL, transforms it, and loads it into a Parquet file.
@@ -56,20 +73,13 @@ class Ingestor:
             self.logger.error(f"Failed to fetch data from {api_url} after retries: {e}")
             raise
 
-        self.source: List[Dict] = response.json()
+        self.source = response.json()
 
     def transform(self, spark: SparkSession, target_path: str) -> None:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        source_copy = self.source.copy()
-        for item in source_copy:
-            if 'location' in item and item['location'] is not None:
-                location_value = item['location']
-                if isinstance(location_value, (dict, list)):
-                    item['location'] = json.dumps(location_value)
-                else:
-                    item['location'] = str(location_value)
+        source_copy: List[Dict] = dump_location(self.source)
 
         self.target: DataFrame = (
             spark.createDataFrame(source_copy)
