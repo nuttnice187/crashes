@@ -10,7 +10,7 @@ from urllib3.util.retry import Retry
 from requests import get, Response, Session
 from requests.adapters import HTTPAdapter
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 from pyspark.sql.functions import current_timestamp, to_timestamp, year
 from pyspark.sql.types import StringType
 
@@ -79,7 +79,7 @@ class Ingestor:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        self.target: DataFrame = (
+        self.target = (
             spark.createDataFrame(dump_location(self.source))
                 .withColumn('crash_year', 
                             year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
@@ -116,7 +116,8 @@ class Ingestor:
         """
         Writes the transformed data to a Parquet file in the specified target path.
         """
-        self.target.write.mode('append').partitionBy('crash_month', 'crash_year').parquet(target_path)
+        writer: DataFrameWriter = self.target.write.mode('append').partitionBy('crash_month', 'crash_year')
+        writer.parquet(target_path)
 
 
 def main(

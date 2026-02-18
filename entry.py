@@ -53,11 +53,11 @@ if __name__ == "__main__":
 
     job_task: str = "{package}.{module}".format(package=args.job, module=args.task) 
     
-    if ROOT not in sys.path:
+    if ROOT in sys.path:
+        L.info(f"'{ROOT}' already in sys.path")
+    else:
         sys.path.insert(0, ROOT)
         L.info(f"Added '{ROOT}' to sys.path")
-    else:
-        L.info(f"'{ROOT}' already in sys.path")
 
     main: Callable[[SparkSession, Logger, Namespace], None] = import_module(job_task).main
     main(SparkSession.builder.getOrCreate(), L, args)
