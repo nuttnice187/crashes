@@ -8,25 +8,37 @@ from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 from pyspark.sql.column import Column
 from pyspark.sql.functions import col, to_timestamp, from_json, lit
 from pyspark.sql.types import (
-    ArrayType, StructType, StructField, StringType, IntegerType,
-    TimestampType, DoubleType
+    ArrayType,
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    TimestampType,
+    DoubleType,
 )
+
 
 class Default(Enum):
     """
     Enumeration of default values
     """
+
     SOURCE_PATH = "/Volumes/workspace/google_drive/mock_s3"
     TARGET_PATH = "workspace.google_drive.silver_table"
+
 
 class Location(Enum):
     """
     Enumeration of StructFields to select from the location column's JSON string values
     """
-    SCHEMA = StructType([
-        StructField("type", StringType()),
-        StructField("coordinates", ArrayType(DoubleType()))
-    ])
+
+    SCHEMA = StructType(
+        [
+            StructField("type", StringType()),
+            StructField("coordinates", ArrayType(DoubleType())),
+        ]
+    )
+
 
 class Target(Enum):
     """
@@ -34,12 +46,14 @@ class Target(Enum):
         1. columns to curate from the bronze data
         2. primary key column name
     """
+
     COLS = (
         col("computed_region_rpca_8um6"),
         col("alignment"),
         col("beat_of_occurrence"),
-        to_timestamp(col("crash_date"), 
-                     "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("crash_date"),
+        to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
+            "crash_date"
+        ),
         col("crash_day_of_week").cast(IntegerType()),
         col("crash_hour").cast(IntegerType()),
         col("crash_month"),
@@ -47,8 +61,9 @@ class Target(Enum):
         col("crash_record_id"),
         col("crash_type"),
         col("damage"),
-        to_timestamp(col("date_police_notified"), 
-                     "yyyy-MM-dd'T'HH:mm:ss.SSS").alias("date_police_notified"),
+        to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
+            "date_police_notified"
+        ),
         col("device_condition"),
         col("first_crash_type"),
         col("injuries_fatal").cast(IntegerType()),
@@ -84,15 +99,17 @@ class Target(Enum):
         col("crash_date_est_i"),
         col("work_zone_i"),
         col("dooring_i"),
-        col("ingest_date")
-        )
+        col("ingest_date"),
+    )
     PRIMARY_KEY = "crash_record_id"
     PARTITION = ("crash_month", "crash_year")
-    
+
+
 class Curator:
     """
     Curator class
     """
+
     spark: SparkSession
     logger: Logger
     source_path: str
@@ -102,9 +119,13 @@ class Curator:
     target: DataFrame
 
     def __init__(
-            self, spark: SparkSession, logger: Logger, 
-            source_path: str, target_path: str, run_id: str
-        ) -> None:
+        self,
+        spark: SparkSession,
+        logger: Logger,
+        source_path: str,
+        target_path: str,
+        run_id: str,
+    ) -> None:
         """
         constructor
         """
@@ -114,7 +135,7 @@ class Curator:
         self.target_path = target_path
         self.run_id = run_id
         self.run()
-    
+
     def run(self) -> None:
         """
         run
@@ -122,49 +143,52 @@ class Curator:
         self.extract()
         self.transform(*Target.COLS.value)
         self.load()
-    
+
     def extract(self) -> None:
         """
         extract bronze data
         """
         self.source = self.spark.read.parquet(self.source_path)
-        
+
     def transform(self, *cols: Column) -> None:
         """
         transform bronze data into the silver table
         """
         self.target = self.source.select(*cols).withColumn("run_id", lit(self.run_id))
-        
+
         if self.spark.catalog.tableExists(self.target_path):
             existing: DataFrame = self.spark.read.table(self.target_path)
-            self.target = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
-    
-        self.logger.info(f"keeping {self.target.count()} records from {self.source.count()} records")
-    
+            self.target = self.target.join(
+                existing, Target.PRIMARY_KEY.value, "left_anti"
+            )
+
+        self.logger.info(
+            f"keeping {self.target.count()} records from {self.source.count()} records"
+        )
+
     def load(self) -> None:
         """
         write silver table
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        writer: DataFrameWriter = (self.target.write
-                                   .format("delta")
-                                   .mode("append")
-                                   .partitionBy(*Target.PARTITION.value))
+        writer: DataFrameWriter = (
+            self.target.write.format("delta")
+            .mode("append")
+            .partitionBy(*Target.PARTITION.value)
+        )
         writer.saveAsTable(self.target_path)
-    
 
-def main(
-        spark: SparkSession, logger: Logger, args: Namespace
-    ) -> None:
+
+def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
     """
     assert args.run_id, "--run_id is required."
-        
+
     Curator(
-        spark=spark, 
-        logger=logger, 
-        source_path=args.source_path if args.source_path else Default.SOURCE_PATH.value, 
+        spark=spark,
+        logger=logger,
+        source_path=args.source_path if args.source_path else Default.SOURCE_PATH.value,
         target_path=args.target_path if args.target_path else Default.TARGET_PATH.value,
-        run_id=args.run_id
+        run_id=args.run_id,
     )
