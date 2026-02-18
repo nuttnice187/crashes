@@ -128,17 +128,17 @@ class Curator:
         """
         extract bronze data
         """
-        self.source: DataFrame = self.spark.read.parquet(self.source_path)
+        self.source = self.spark.read.parquet(self.source_path)
         
     def transform(self, *cols: Column) -> None:
         """
         transform bronze data into the silver table
         """
-        self.target: DataFrame = self.source.select(*cols).withColumn("run_id", lit(self.run_id))
+        self.target = self.source.select(*cols).withColumn("run_id", lit(self.run_id))
         
         if self.spark.catalog.tableExists(self.target_path):
             existing: DataFrame = self.spark.read.table(self.target_path)
-            self.target: DataFrame = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
+            self.target = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
             
             self.logger.info(f"dropped {existing.count()} records from {self.source.count()} records")
     
