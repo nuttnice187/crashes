@@ -79,7 +79,7 @@ class Ingestor:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        self.target: DataFrame = (
+        self.target = (
             spark.createDataFrame(dump_location(self.source))
                 .withColumn('crash_year', 
                             year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
