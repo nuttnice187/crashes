@@ -36,6 +36,16 @@ class Default(Enum):
     """
     API_URL = "https://data.cityofchicago.org/resource/85ca-t3if.json"
     TARGET_PATH = "/content/drive/MyDrive/crashes_data"
+
+class Target(Enum):
+    CALCULATED = (
+        year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"))
+            .cast(StringType())
+            .alias("crash_year"),
+        current_timestamp().alias("ingest_date")
+    )
+    RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
+    PRIMARY_KEY = "crash_record_id"
     
 class Ingestor:
     """
@@ -79,14 +89,9 @@ class Ingestor:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        self.target = (
-            spark.createDataFrame(dump_location(self.source))
-                .withColumn('crash_year', 
-                            year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
-                                ).cast(StringType()))
-                .withColumn('ingest_time', current_timestamp())
-                .withColumnRenamed(":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
-        )
+        self.target = (spark.createDataFrame(dump_location(self.source))
+            .select('*', *Target.CALCULATED.value)
+            .withColumnRenamed(*Target.RENAMED.value))
 
         self.check_existing(spark, target_path)
 
@@ -103,7 +108,7 @@ class Ingestor:
             self.logger.warning(f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data.")
 
         if existing is not None and not existing.isEmpty():
-            primary_key = 'crash_record_id'
+            primary_key = Target.PRIMARY_KEY.value
             if primary_key in self.target.columns and primary_key in existing.columns:
                 self.target = self.target.join(existing, on=primary_key, how='left_anti')
                 self.logger.info(f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.target.count()}")
