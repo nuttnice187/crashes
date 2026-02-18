@@ -12,26 +12,6 @@ from pyspark.sql.types import (
     TimestampType, DoubleType
 )
 
-
-def check_existing(
-    spark: SparkSession, source: DataFrame, target_path: str, primary_key: str,
-    logger: Logger
-    ) -> DataFrame:
-    """
-    check existing
-    """
-    result = source
-
-    if spark.catalog.tableExists(target_path):
-        existing: DataFrame = spark.read.table(target_path)
-        result = source.join(existing, primary_key, "left_anti")
-        
-        logger.info(f"dropped {existing.count()} records from {source.count()} records")
-
-    logger.info(f"keeping {result.count()} records from {source.count()} records")
-    return result
-
-
 class Default(Enum):
     """
     Enumeration of default values
@@ -41,7 +21,7 @@ class Default(Enum):
 
 class Location(Enum):
     """
-    Enumeration of StructFields to select from the location values
+    Enumeration of StructFields to select from the location column's JSON string values
     """
     SCHEMA = StructType([
         StructField("type", StringType()),
@@ -50,7 +30,9 @@ class Location(Enum):
 
 class Target(Enum):
     """
-    Enumeration of columns to select from the bronze data
+    Enumeration of target dataframe properties:
+        1. columns to curate from the bronze data
+        2. primary key column name
     """
     COLS = (
         col("computed_region_rpca_8um6"),
@@ -146,19 +128,21 @@ class Curator:
         """
         extract bronze data
         """
-        self.source: DataFrame = self.spark.read.parquet(self.source_path)
+        self.source = self.spark.read.parquet(self.source_path)
         
     def transform(self, *cols: Column) -> None:
         """
         transform bronze data into the silver table
         """
-        self.target: DataFrame = check_existing(
-            spark=self.spark, 
-            source=self.source.select(*cols).withColumn("run_id", lit(self.run_id)), 
-            target_path=self.target_path, 
-            primary_key=Target.PRIMARY_KEY.value,
-            logger=self.logger
-            )    
+        self.target = self.source.select(*cols).withColumn("run_id", lit(self.run_id))
+        
+        if self.spark.catalog.tableExists(self.target_path):
+            existing: DataFrame = self.spark.read.table(self.target_path)
+            self.target = self.target.join(existing, Target.PRIMARY_KEY.value, "left_anti")
+            
+            self.logger.info(f"dropped {existing.count()} records from {self.source.count()} records")
+    
+        logger.info(f"keeping {result.count()} records from {source.count()} records")
     
     def load(self) -> None:
         """
@@ -175,6 +159,7 @@ def main(
     Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
     """
     assert args.run_id, "--run_id is required."
+        
     Curator(
         spark=spark, 
         logger=logger, 

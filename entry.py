@@ -51,7 +51,7 @@ if __name__ == "__main__":
     assert args.job, "--job is required."
     assert args.task, "--task is required."
 
-    module: str = "{package}.{module}".format(package=args.job, module=args.task) 
+    job_task: str = "{package}.{module}".format(package=args.job, module=args.task) 
     
     if ROOT not in sys.path:
         sys.path.insert(0, ROOT)
@@ -59,5 +59,5 @@ if __name__ == "__main__":
     else:
         L.info(f"'{ROOT}' already in sys.path")
 
-    main: Callable[[SparkSession, Logger, Namespace], None] = import_module(module).main
+    main: Callable[[SparkSession, Logger, Namespace], None] = import_module(job_task).main
     main(SparkSession.builder.getOrCreate(), L, args)

@@ -3,15 +3,32 @@ import json
 from argparse import Namespace
 from enum import Enum
 from logging import Logger
-from requests import get, Response, Session
 from typing import Dict, List, Optional
 
-from requests.adapters import HTTPAdapter
-from pyspark.sql import DataFrame, SparkSession
+from urllib3.util.retry import Retry
 
+from requests import get, Response, Session
+from requests.adapters import HTTPAdapter
+
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import current_timestamp, to_timestamp, year
 from pyspark.sql.types import StringType
-from urllib3.util.retry import Retry
+
+
+def dump_location(source: List[Dict]) -> List[Dict]:
+    """
+    convert location values of the api response to a json string
+    """
+    result = source.copy()
+    for item in result:
+        if 'location' in item and item['location'] is not None:
+            location_value = item['location']
+            if isinstance(location_value, (dict, list)):
+                item['location'] = json.dumps(location_value)
+            else:
+                item['location'] = str(location_value)
+    return result
+
 
 class Default(Enum):
     """
@@ -19,7 +36,7 @@ class Default(Enum):
     """
     API_URL = "https://data.cityofchicago.org/resource/85ca-t3if.json"
     TARGET_PATH = "/content/drive/MyDrive/crashes_data"
-
+    
 class Ingestor:
     """
     Ingests data from a given API URL, transforms it, and loads it into a Parquet file.
@@ -28,7 +45,9 @@ class Ingestor:
     source: List[Dict]
     target: DataFrame
 
-    def __init__(self, spark: SparkSession, logger: Logger, api_url: str, target_path: str) -> None:
+    def __init__(
+            self, spark: SparkSession, logger: Logger, api_url: str, target_path: str
+        ) -> None:
         """
         Initializes the Ingestor with the provided SparkSession, API URL, and target path.
         """
@@ -54,23 +73,14 @@ class Ingestor:
             self.logger.error(f"Failed to fetch data from {api_url} after retries: {e}")
             raise
 
-        self.source: List[Dict] = response.json()
+        self.source = response.json()
 
     def transform(self, spark: SparkSession, target_path: str) -> None:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        source_copy = self.source.copy()
-        for item in source_copy:
-            if 'location' in item and item['location'] is not None:
-                location_value = item['location']
-                if isinstance(location_value, (dict, list)):
-                    item['location'] = json.dumps(location_value)
-                else:
-                    item['location'] = str(location_value)
-
         self.target: DataFrame = (
-            spark.createDataFrame(source_copy)
+            spark.createDataFrame(dump_location(self.source))
                 .withColumn('crash_year', 
                             year(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
                                 ).cast(StringType()))
@@ -82,7 +92,7 @@ class Ingestor:
 
     def check_existing(self, spark: SparkSession, target_path: str) -> None:
         """
-        Checks for existing data in the target path and performs incremental loading.
+        Checks for existing data in the target path and filters transformation for incremental loading.
         """
         existing: Optional[DataFrame] = None
         
@@ -93,14 +103,12 @@ class Ingestor:
             self.logger.warning(f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data.")
 
         if existing is not None and not existing.isEmpty():
-            join_column = 'crash_record_id'
-            if join_column in self.target.columns and join_column in existing.columns:
-                self.target = (self.target
-                    .join(existing, on=join_column, how='left_anti'))
-                self.logger.info(f"Performed left_anti join with existing data on '{join_column}'. New records count: {self.target.count()}")
+            primary_key = 'crash_record_id'
+            if primary_key in self.target.columns and primary_key in existing.columns:
+                self.target = self.target.join(existing, on=primary_key, how='left_anti')
+                self.logger.info(f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.target.count()}")
             else:
-                self.logger.warning(f"Cannot perform left_anti join: '{join_column}' not found in one or both dataframes. Loading all data from source.")
-
+                self.logger.warning(f"Cannot perform left_anti join: '{primary_key}' not found in one or both dataframes. Loading all data from source.")
         else:
             self.logger.info("No existing data to join with, or existing data is empty. Loading all data from source.")
 
