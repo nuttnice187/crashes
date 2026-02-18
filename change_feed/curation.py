@@ -149,7 +149,10 @@ class Curator:
         write silver table
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        writer: DataFrameWriter = self.target.write.format("delta").mode("append").partitionBy("crash_month", "crash_year")
+        writer: DataFrameWriter = (self.target.write
+                                   .format("delta")
+                                   .mode("append")
+                                   .partitionBy("crash_month", "crash_year"))
         writer.saveAsTable(self.target_path)
     
 
