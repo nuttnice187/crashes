@@ -116,7 +116,9 @@ class Ingestor:
         """
         Writes the transformed data to a Parquet file in the specified target path.
         """
-        writer: DataFrameWriter = self.target.write.mode('append').partitionBy('crash_month', 'crash_year')
+        writer: DataFrameWriter = (self.target.write
+                                   .mode('append')
+                                   .partitionBy('crash_month', 'crash_year'))
         writer.parquet(target_path)
 
 
