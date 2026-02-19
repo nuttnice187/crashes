@@ -113,8 +113,8 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiate the Presentor class
     """
-    assert args.source_path, "Source path is required"
-    assert args.target_path, "Target path is required"
-    assert args.run_id, "Run id is required"
+    assert args.source_path, "--source_path is required"
+    assert args.target_path, "--target_path is required"
+    assert args.run_id, "--run_id is required"
 
     Presentor(spark=spark, logger=logger, config=Config(args))
