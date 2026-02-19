@@ -43,8 +43,7 @@ class Presentor:
 
     def run(self) -> None:
         """
-        Read from curated delta table and apply any required
-        - Filter to specific level of detail
+        - Read from silver delta table
         - Aggregation, summarization
         - Write to gold delta table
         """
@@ -54,7 +53,7 @@ class Presentor:
 
     def extract(self) -> None:
         """
-        Read from curated delta table
+        Read from silver delta table
         """
         self.source = self.spark.read.table(self.config.source_table)
 
