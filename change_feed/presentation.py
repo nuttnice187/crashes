@@ -97,11 +97,13 @@ class Presentor:
             self.logger.info("Target table exists. Performing merge.")
             merge_metrics: DataFrame = (
                 target.alias("t")
-                .merge(self.source
-                       .filter(
-                           col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
-                       )
-                       .alias("s"), Target.MERGE_CONDITION.value)
+                .merge(
+                    self.source.filter(
+                        col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
+                    )
+                    .alias("s"), 
+                    Target.MERGE_CONDITION.value
+                )
                 .whenNotMatchedInsertAll()
                 .whenMatchedUpdateAll(Target.MATCH_CONDITION.value)
                 .execute()
