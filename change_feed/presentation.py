@@ -21,7 +21,7 @@ class Target(Enum):
 
 class Config:
     """
-    Configuration class for the notebook
+    Configuration class
     """
 
     def __init__(self, args: Namespace):
@@ -32,7 +32,7 @@ class Config:
 
 class Presentor:
     """
-    Presentor class for the notebook
+    Presentor class
     """
 
     def __init__(self, spark: SparkSession, logger: Logger, config: Config) -> None:
