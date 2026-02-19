@@ -17,6 +17,7 @@ class Target(Enum):
 
     MERGE_CONDITION = "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date"
     MATCH_CONDITION = "t.hash_key != s.hash_key"
+    PARTITION = "crash_year"
 
 
 class Source(Enum):
@@ -137,6 +138,7 @@ class Presentor:
         writer: DataFrameWriter = (
             self.source.write.format("delta")
             .mode("overwrite")
+            .partitionBy(Target.PARTITION.value)
             .option("enableChangeDataFeed", "true")
         )
         writer.saveAsTable(self.config.target_table)
