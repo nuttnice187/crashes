@@ -21,7 +21,7 @@ class Target(Enum):
 
 class Config:
     """
-    Configuration class for the notebook
+    Configuration class
     """
 
     def __init__(self, args: Namespace):
@@ -32,7 +32,7 @@ class Config:
 
 class Presentor:
     """
-    Presentor class for the notebook
+    Presentor class
     """
 
     def __init__(self, spark: SparkSession, logger: Logger, config: Config) -> None:
@@ -43,8 +43,7 @@ class Presentor:
 
     def run(self) -> None:
         """
-        Read from curated delta table and apply any required
-        - Filter to specific level of detail
+        - Read from silver delta table
         - Aggregation, summarization
         - Write to gold delta table
         """
@@ -54,7 +53,7 @@ class Presentor:
 
     def extract(self) -> None:
         """
-        Read from curated delta table
+        Read from silver delta table
         """
         self.source = self.spark.read.table(self.config.source_table)
 
@@ -71,9 +70,9 @@ class Presentor:
             )
             .agg(
                 count("*").alias("crash_records"),
-                sum(col("injuries_fatal")).alias("fatalities"),
-                sum(col("injuries_total")).alias("injuries"),
-                max(col("ingest_date")).alias("max_ingest_date"),
+                sum("injuries_fatal").alias("fatalities"),
+                sum("injuries_total").alias("injuries"),
+                max("ingest_date").alias("max_ingest_date"),
             )
             .withColumn(
                 "hash_key",
