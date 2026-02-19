@@ -111,7 +111,7 @@ class Presentor:
         """
         merge
         """
-        target = DeltaTable.forName(self.spark, self.config.target_table)
+        target: DeltaTable = DeltaTable.forName(self.spark, self.config.target_table)
         merge_metrics: DataFrame = (
             target.alias("t")
             .merge(
