@@ -80,6 +80,9 @@ class Presentor:
         """
         self.source = (
             self.source.groupBy(
+                "report_type",
+                "weather_condition",
+                "crash_type",
                 "crash_year",
                 "crash_month",
                 col("crash_date").cast(DateType()).alias("crash_date"),
