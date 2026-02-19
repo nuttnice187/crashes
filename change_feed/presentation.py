@@ -49,7 +49,6 @@ class Presentor:
     logger: Logger
     config: Config
     source: DataFrame
-    target: DeltaTable
 
     def __init__(self, spark: SparkSession, logger: Logger, config: Config) -> None:
         self.config = config
@@ -112,9 +111,9 @@ class Presentor:
         """
         merge
         """
-        self.target = DeltaTable.forName(self.spark, self.config.target_table)
+        target = DeltaTable.forName(self.spark, self.config.target_table)
         merge_metrics: DataFrame = (
-            self.target.alias("t")
+            target.alias("t")
             .merge(
                 self.source.filter(
                     col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
