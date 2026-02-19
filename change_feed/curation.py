@@ -6,7 +6,16 @@ from typing import Optional
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
 from pyspark.sql.column import Column
-from pyspark.sql.functions import col, to_timestamp, from_json, lit
+from pyspark.sql.functions import (
+    col,
+    to_timestamp,
+    from_json,
+    lit,
+    to_date,
+    sha1,
+    struct,
+    to_json,
+)
 from pyspark.sql.types import (
     ArrayType,
     StructType,
@@ -52,8 +61,11 @@ class Target(Enum):
         col("computed_region_rpca_8um6"),
         col("alignment"),
         col("beat_of_occurrence"),
-        to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
+        to_date(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")).alias(
             "crash_date"
+        ),
+        to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
+            "crash_timestamp"
         ),
         col("crash_day_of_week").cast(IntegerType()),
         col("crash_hour").cast(IntegerType()),
@@ -62,8 +74,11 @@ class Target(Enum):
         col("crash_record_id"),
         col("crash_type"),
         col("damage"),
+        to_date(
+            to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
+        ).alias("date_police_notified"),
         to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
-            "date_police_notified"
+            "timestamp_police_notified"
         ),
         col("device_condition"),
         col("first_crash_type"),
@@ -155,7 +170,14 @@ class Curator:
         """
         transform bronze data into the silver table
         """
-        self.target = self.source.select(*cols).withColumn("run_id", lit(self.run_id))
+        self.target = (
+            self.source.select(*cols)
+            .withColumn(
+                "group_id",
+                sha1(to_json(struct("report_type", "crash_type", "crash_date"))),
+            )
+            .withColumn("run_id", lit(self.run_id))
+        )
 
         if self.spark.catalog.tableExists(self.target_path):
             existing: DataFrame = self.spark.read.table(self.target_path)

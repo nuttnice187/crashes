@@ -15,7 +15,7 @@ class Target(Enum):
     Target table properties
     """
 
-    ON_COLS = "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date"
+    ON_COLS = "t.id = s.id"
     CHANGES_DETECTED = "t.hash_key != s.hash_key"
     PARTITION = "crash_year"
 
@@ -80,12 +80,12 @@ class Presentor:
         """
         self.source = (
             self.source.groupBy(
+                col("group_id").alias("id"),
                 "report_type",
-                "weather_condition",
                 "crash_type",
                 "crash_year",
                 "crash_month",
-                col("crash_date").cast(DateType()).alias("crash_date"),
+                "crash_date",
             )
             .agg(
                 count("*").alias("crash_records"),
