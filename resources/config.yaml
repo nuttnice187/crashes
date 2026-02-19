@@ -38,8 +38,6 @@ resources:
       queue:
         enabled: true
       parameters:
-        - name: api_url
-          default: https://data.cityofchicago.org/resource/85ca-t3if.json
         - name: external_path
           default: /Volumes/workspace/google_drive/mock_s3
         - name: bronze_table
