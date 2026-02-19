@@ -15,8 +15,8 @@ class Target(Enum):
     Target table properties
     """
 
-    MERGE_CONDITION = "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date"
-    MATCH_CONDITION = "t.hash_key != s.hash_key"
+    ON_COLS = "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date"
+    CHANGES_DETECTED = "t.hash_key != s.hash_key"
     PARTITION = "crash_year"
 
 
@@ -120,10 +120,10 @@ class Presentor:
                     col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
                 )
                 .alias("s"), 
-                Target.MERGE_CONDITION.value
+                Target.ON_COLS.value
             )
             .whenNotMatchedInsertAll()
-            .whenMatchedUpdateAll(Target.MATCH_CONDITION.value)
+            .whenMatchedUpdateAll(Target.CHANGES_DETECTED.value)
             .execute()
         )
         [
