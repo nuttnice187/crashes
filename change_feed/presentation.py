@@ -23,6 +23,7 @@ class Source(Enum):
     """
     Source data properties
     """
+    
     T_MINUS = 30
 
 
@@ -30,8 +31,11 @@ class Config:
     """
     Configuration class
     """
+    source_table: str
+    target_table: str
+    run_id: str
 
-    def __init__(self, args: Namespace):
+    def __init__(self, args: Namespace) ->  None:
         self.source_table = args.source_path
         self.target_table = args.target_path
         self.run_id = args.run_id
@@ -41,6 +45,10 @@ class Presentor:
     """
     Presentor class
     """
+    spark: SparkSession
+    logger: Logger
+    config: Config
+    source: DataFrame
 
     def __init__(self, spark: SparkSession, logger: Logger, config: Config) -> None:
         self.config = config
@@ -93,33 +101,45 @@ class Presentor:
         Write to gold delta table
         """
         if self.spark.catalog.tableExists(self.config.target_table):
-            target = DeltaTable.forName(self.spark, self.config.target_table)
             self.logger.info("Target table exists. Performing merge.")
-            merge_metrics: DataFrame = (
-                target.alias("t")
-                .merge(
-                    self.source.filter(
-                        col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
-                    )
-                    .alias("s"), 
-                    Target.MERGE_CONDITION.value
-                )
-                .whenNotMatchedInsertAll()
-                .whenMatchedUpdateAll(Target.MATCH_CONDITION.value)
-                .execute()
-            )
-            [
-                self.logger.info("{}: {}".format(k, v))
-                for k, v in merge_metrics.collect()[0].asDict().items()
-            ]
+            self.merge()
         else:
             self.logger("Target table does not exist. Creating new table")
-            writer: DataFrameWriter = (
-                self.source.write.format("delta")
-                .mode("overwrite")
-                .option("enableChangeDataFeed", "true")
+            self.overwrite()
+            
+    def merge(self) -> None:
+        """
+        merge
+        """
+        target: DeltaTable = DeltaTable.forName(self.spark, self.config.target_table)
+        merge_metrics: DataFrame = (
+            target.alias("t")
+            .merge(
+                self.source.filter(
+                    col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
+                )
+                .alias("s"), 
+                Target.MERGE_CONDITION.value
             )
-            writer.saveAsTable(self.config.target_table)
+            .whenNotMatchedInsertAll()
+            .whenMatchedUpdateAll(Target.MATCH_CONDITION.value)
+            .execute()
+        )
+        [
+            self.logger.info("{}: {}".format(k, v))
+            for k, v in merge_metrics.collect()[0].asDict().items()
+        ]
+        
+    def overwrite(self) -> None:
+        """
+        overwrite
+        """
+        writer: DataFrameWriter = (
+            self.source.write.format("delta")
+            .mode("overwrite")
+            .option("enableChangeDataFeed", "true")
+        )
+        writer.saveAsTable(self.config.target_table)
 
 
 def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
