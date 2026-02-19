@@ -6,7 +6,7 @@ from typing import Dict
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession, DataFrame, DataFrameWriter
 
-from pyspark.sql.functions import sha1, to_json, struct, lit, col, count, sum, max
+from pyspark.sql.functions import sha1, to_json, struct, lit, col, count, sum, max, current_date
 from pyspark.sql.types import DateType
 
 
@@ -17,6 +17,13 @@ class Target(Enum):
 
     MERGE_CONDITION = "t.crash_year = s.crash_year AND t.crash_month = s.crash_month AND t.crash_date = s.crash_date"
     MATCH_CONDITION = "t.hash_key != s.hash_key"
+
+
+class Source(Enum):
+    """
+    Source data properties
+    """
+    T_MINUS = 30
 
 
 class Config:
@@ -90,7 +97,13 @@ class Presentor:
             self.logger.info("Target table exists. Performing merge.")
             merge_metrics: DataFrame = (
                 target.alias("t")
-                .merge(self.source.alias("s"), Target.MERGE_CONDITION.value)
+                .merge(
+                    self.source.filter(
+                        col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
+                    )
+                    .alias("s"), 
+                    Target.MERGE_CONDITION.value
+                )
                 .whenNotMatchedInsertAll()
                 .whenMatchedUpdateAll(Target.MATCH_CONDITION.value)
                 .execute()
@@ -113,8 +126,8 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiate the Presentor class
     """
-    assert args.source_path, "Source path is required"
-    assert args.target_path, "Target path is required"
-    assert args.run_id, "Run id is required"
+    assert args.source_path, "--source_path is required"
+    assert args.target_path, "--target_path is required"
+    assert args.run_id, "--run_id is required"
 
     Presentor(spark=spark, logger=logger, config=Config(args))
