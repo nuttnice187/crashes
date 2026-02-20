@@ -99,6 +99,7 @@ class Presentor:
                 "crash_year",
                 "crash_month",
                 "crash_date",
+                "crash_day_of_week",
             )
             .agg(
                 count("*").alias("crash_records"),
