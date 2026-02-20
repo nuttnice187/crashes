@@ -46,7 +46,7 @@ class Target(Enum):
 
     RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
     PRIMARY_KEY = "crash_record_id"
-    PARTITION = ("crash_month", "crash_year")
+    PARTITION = ("crash_year", "crash_month")
 
 
 class Ingestor:
