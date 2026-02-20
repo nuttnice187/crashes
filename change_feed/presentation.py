@@ -6,7 +6,18 @@ from typing import Dict
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession, DataFrame, DataFrameWriter
 
-from pyspark.sql.functions import sha1, to_json, struct, lit, col, count, sum, max, current_date, date_sub
+from pyspark.sql.functions import (
+    sha1,
+    to_json,
+    struct,
+    lit,
+    col,
+    count,
+    sum,
+    max,
+    current_date,
+    date_sub,
+)
 from pyspark.sql.types import DateType
 
 
@@ -24,7 +35,7 @@ class Source(Enum):
     """
     Source data properties
     """
-    
+
     T_MINUS = 30
 
 
@@ -32,11 +43,12 @@ class Config:
     """
     Configuration class
     """
+
     source_table: str
     target_table: str
     run_id: str
 
-    def __init__(self, args: Namespace) ->  None:
+    def __init__(self, args: Namespace) -> None:
         self.source_table = args.source_path
         self.target_table = args.target_path
         self.run_id = args.run_id
@@ -46,6 +58,7 @@ class Presentor:
     """
     Presentor class
     """
+
     spark: SparkSession
     logger: Logger
     config: Config
@@ -110,7 +123,7 @@ class Presentor:
         else:
             self.logger("Target table does not exist. Creating new table")
             self.overwrite()
-            
+
     def merge(self) -> None:
         """
         merge
@@ -121,9 +134,8 @@ class Presentor:
             .merge(
                 self.source.filter(
                     col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
-                )
-                .alias("s"), 
-                Target.ON_COLS.value
+                ).alias("s"),
+                Target.ON_COLS.value,
             )
             .whenNotMatchedInsertAll()
             .whenMatchedUpdateAll(Target.CHANGES_DETECTED.value)
@@ -133,7 +145,7 @@ class Presentor:
             self.logger.info("{}: {}".format(k, v))
             for k, v in merge_metrics.collect()[0].asDict().items()
         ]
-        
+
     def overwrite(self) -> None:
         """
         overwrite
