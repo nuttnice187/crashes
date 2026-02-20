@@ -26,9 +26,9 @@ class Target(Enum):
         "crash_records": "t.crash_records + s.crash_records",
         "fatalities": "t.fatalities + s.fatalities",
         "injuries": "t.injuries + s.injuries",
-        "run_id": "s.run_id",
         "ingest_date": "s.ingest_date",
-        }
+        "run_id": "s.run_id",
+    }
 
 
 class Config:
@@ -75,6 +75,7 @@ class Presentor:
     def extract(self) -> None:
         """
         Read from silver delta table
+        - Filter by run_id
         """
         self.source = self.spark.read.table(self.config.source_table).filter(
             col("run_id") == self.config.run_id
