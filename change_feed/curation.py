@@ -132,7 +132,6 @@ class Curator:
     target_path: str
     run_id: str
     source: DataFrame
-    target: DataFrame
 
     def __init__(
         self,
@@ -170,7 +169,7 @@ class Curator:
         """
         transform bronze data into the silver table
         """
-        self.target = (
+        self.source = (
             self.source.select(*cols)
             .withColumn(
                 "group_id",
@@ -180,13 +179,13 @@ class Curator:
         )
 
         if self.spark.catalog.tableExists(self.target_path):
-            existing: DataFrame = self.spark.read.table(self.target_path)
-            self.target = self.target.join(
-                existing, Target.PRIMARY_KEY.value, "left_anti"
+            target: DataFrame = self.spark.read.table(self.target_path)
+            self.source = self.source.join(
+                target, Target.PRIMARY_KEY.value, "left_anti"
             )
 
         self.logger.info(
-            f"keeping {self.target.count()} records from {self.source.count()} records"
+            f"keeping {self.source.count()} records"
         )
 
     def load(self) -> None:
@@ -195,7 +194,7 @@ class Curator:
         """
         self.logger.info(f"writing silver table to {self.target_path}")
         writer: DataFrameWriter = (
-            self.target.write.format("delta")
+            self.source.write.format("delta")
             .mode("append")
             .partitionBy(*Target.PARTITION.value)
         )
