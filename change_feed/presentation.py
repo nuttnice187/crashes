@@ -90,18 +90,18 @@ class Presentor:
                 col("group_id").alias("id"),
                 "report_type",
                 "crash_type",
+                "crash_date",
                 "crash_year",
                 "crash_month",
-                "crash_date",
                 "crash_day_of_week",
             )
             .agg(
                 count("*").alias("crash_records"),
                 sum("injuries_fatal").alias("fatalities"),
                 sum("injuries_total").alias("injuries"),
-                max("ingest_date").alias("max_ingest_date"),
+                max("ingest_date").alias("ingest_date"),
             )
-            .withColumn("update_run_id", lit(self.config.run_id))
+            .withColumn("run_id", lit(self.config.run_id))
         )
 
     def load(self) -> None:
