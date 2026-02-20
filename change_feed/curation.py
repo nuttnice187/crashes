@@ -118,7 +118,7 @@ class Target(Enum):
         col("ingest_date"),
     )
     PRIMARY_KEY = "crash_record_id"
-    PARTITION = ("crash_month", "crash_year")
+    PARTITION = ("crash_year", "crash_month")
 
 
 class Curator:
