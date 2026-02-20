@@ -27,16 +27,7 @@ class Target(Enum):
     """
 
     ON_COLS = "t.id = s.id"
-    CHANGES_DETECTED = "t.hash_key != s.hash_key"
     PARTITION = "crash_year"
-
-
-class Source(Enum):
-    """
-    Source data properties
-    """
-
-    T_MINUS = 30
 
 
 class Config:
@@ -84,7 +75,9 @@ class Presentor:
         """
         Read from silver delta table
         """
-        self.source = self.spark.read.table(self.config.source_table)
+        self.source = self.spark.read.table(self.config.source_table).filter(
+            col("run_id") == self.config.run_id
+        )
 
     def transform(self) -> None:
         """
@@ -107,10 +100,6 @@ class Presentor:
                 sum("injuries_total").alias("injuries"),
                 max("ingest_date").alias("max_ingest_date"),
             )
-            .withColumn(
-                "hash_key",
-                sha1(to_json(struct("crash_records", "fatalities", "injuries"))),
-            )
             .withColumn("update_run_id", lit(self.config.run_id))
         )
 
@@ -132,14 +121,17 @@ class Presentor:
         target: DeltaTable = DeltaTable.forName(self.spark, self.config.target_table)
         merge_metrics: DataFrame = (
             target.alias("t")
-            .merge(
-                self.source.filter(
-                    col("crash_date") >= date_sub(current_date(), Source.T_MINUS.value)
-                ).alias("s"),
-                Target.ON_COLS.value,
-            )
+            .merge(self.source.alias("s"), condition=Target.ON_COLS.value)
             .whenNotMatchedInsertAll()
-            .whenMatchedUpdateAll(Target.CHANGES_DETECTED.value)
+            .whenMatchedUpdate(
+                set={
+                    "crash_records": "t.crash_records + s.crash_records",
+                    "fatalities": "t.fatalities + s.fatalities",
+                    "injuries": "t.injuries + s.injuries",
+                    "update_run_id": "s.update_run_id",
+                    "max_ingest_date": "s.max_ingest_date",
+                },
+            )
             .execute()
         )
         [
