@@ -28,6 +28,13 @@ class Target(Enum):
 
     ON_COLS = "t.id = s.id"
     PARTITION = "crash_year"
+    UPDATE = {
+        "crash_records": "t.crash_records + s.crash_records",
+        "fatalities": "t.fatalities + s.fatalities",
+        "injuries": "t.injuries + s.injuries",
+        "update_run_id": "s.update_run_id",
+        "max_ingest_date": "s.max_ingest_date",
+        }
 
 
 class Config:
@@ -123,15 +130,7 @@ class Presentor:
             target.alias("t")
             .merge(self.source.alias("s"), condition=Target.ON_COLS.value)
             .whenNotMatchedInsertAll()
-            .whenMatchedUpdate(
-                set={
-                    "crash_records": "t.crash_records + s.crash_records",
-                    "fatalities": "t.fatalities + s.fatalities",
-                    "injuries": "t.injuries + s.injuries",
-                    "update_run_id": "s.update_run_id",
-                    "max_ingest_date": "s.max_ingest_date",
-                },
-            )
+            .whenMatchedUpdate(set=Target.UPDATE.value)
             .execute()
         )
         [
