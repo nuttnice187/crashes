@@ -1,22 +1,16 @@
 from argparse import Namespace
 from enum import Enum
 from logging import Logger
-from typing import Dict
 
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession, DataFrame, DataFrameWriter
 
 from pyspark.sql.functions import (
-    sha1,
-    to_json,
-    struct,
     lit,
     col,
     count,
     sum,
     max,
-    current_date,
-    date_sub,
 )
 from pyspark.sql.types import DateType
 
