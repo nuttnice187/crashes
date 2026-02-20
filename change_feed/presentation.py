@@ -26,8 +26,8 @@ class Target(Enum):
         "crash_records": "t.crash_records + s.crash_records",
         "fatalities": "t.fatalities + s.fatalities",
         "injuries": "t.injuries + s.injuries",
-        "update_run_id": "s.update_run_id",
-        "max_ingest_date": "s.max_ingest_date",
+        "run_id": "s.run_id",
+        "ingest_date": "s.ingest_date",
         }
 
 
