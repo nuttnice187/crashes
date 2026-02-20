@@ -55,8 +55,8 @@ class Ingestor:
     """
 
     logger: Logger
-    source: List[Dict]
-    target: DataFrame
+    response_json: List[Dict]
+    source: DataFrame
 
     def __init__(
         self, spark: SparkSession, logger: Logger, api_url: str, target_path: str
@@ -88,14 +88,14 @@ class Ingestor:
             self.logger.error(f"Failed to fetch data from {api_url} after retries: {e}")
             raise
 
-        self.source = response.json()
+        self.response_json = response.json()
 
     def transform(self, spark: SparkSession, target_path: str) -> None:
         """
         Preprocesses 'location' field and handles existing data for incremental loading.
         """
-        self.target = (
-            spark.createDataFrame(dump_location(self.source))
+        self.source = (
+            spark.createDataFrame(dump_location(self.response_json))
             .select(
                 "*",
                 year(
@@ -112,26 +112,26 @@ class Ingestor:
         """
         Checks for existing data in the target path and filters transformation for incremental loading.
         """
-        existing: Optional[DataFrame] = None
+        target: Optional[DataFrame] = None
 
         try:
-            existing = spark.read.parquet(target_path)
+            target = spark.read.parquet(target_path)
             self.logger.info(
-                f"Successfully read existing Parquet data from {target_path}. Row count: {existing.count()}"
+                f"Successfully read existing Parquet data from {target_path}. Row count: {target.count()}"
             )
         except Exception as e:
             self.logger.warning(
                 f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data."
             )
 
-        if existing is not None and not existing.isEmpty():
+        if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
-            if primary_key in self.target.columns and primary_key in existing.columns:
-                self.target = self.target.join(
-                    existing, on=primary_key, how="left_anti"
+            if primary_key in self.source.columns and primary_key in target.columns:
+                self.source = self.source.join(
+                    target, on=primary_key, how="left_anti"
                 )
                 self.logger.info(
-                    f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.target.count()}"
+                    f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.source.count()}"
                 )
             else:
                 self.logger.warning(
@@ -146,7 +146,7 @@ class Ingestor:
         """
         Writes the transformed data to a Parquet file in the specified target path.
         """
-        writer: DataFrameWriter = self.target.write.mode("append").partitionBy(
+        writer: DataFrameWriter = self.source.write.mode("append").partitionBy(
             *Target.PARTITION.value
         )
         writer.parquet(target_path)
