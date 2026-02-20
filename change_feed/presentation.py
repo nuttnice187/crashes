@@ -108,6 +108,9 @@ class Presentor:
     def load(self) -> None:
         """
         Write to gold delta table
+        - merge if table exists
+        - overwrite if table does not exist
+
         """
         if self.spark.catalog.tableExists(self.config.target_table):
             self.logger.info("Target table exists. Performing merge.")

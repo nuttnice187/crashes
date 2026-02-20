@@ -153,7 +153,10 @@ class Curator:
 
     def run(self) -> None:
         """
-        run
+        run the pipeline using the following steps:
+            - extract bronze data
+            - transform bronze data into the silver table
+            - load silver table to delta format
         """
         self.extract()
         self.transform(*Target.COLS.value)
@@ -167,7 +170,11 @@ class Curator:
 
     def transform(self, *cols: Column) -> None:
         """
-        transform bronze data into the silver table
+        transform bronze data into the silver table with the following columns:
+            - cols: columns to curate from the bronze data
+            - group_id: hash of the report_type, crash_type, and crash_date
+            - run_id: run_id
+        :param cols: columns to curate from the bronze data
         """
         self.source = (
             self.source.select(*cols)
@@ -190,7 +197,9 @@ class Curator:
 
     def load(self) -> None:
         """
-        write silver table
+        write silver table to delta format using the following properties:
+            - mode: append
+            - partitionBy: crash_year, crash_month
         """
         self.logger.info(f"writing silver table to {self.target_path}")
         writer: DataFrameWriter = (
