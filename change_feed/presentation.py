@@ -21,7 +21,12 @@ class Target(Enum):
     """
 
     ON_COLS = "t.id = s.id"
-    PARTITION = "crash_year"
+    LIQUID_KEYS = (
+                    "report_type",
+                    "crash_type",
+                    "crash_date",
+                    "id"
+                   )
     UPDATE = {
         "crash_records": "t.crash_records + s.crash_records",
         "fatalities": "t.fatalities + s.fatalities",
@@ -143,7 +148,7 @@ class Presentor:
         writer: DataFrameWriter = (
             self.source.write.format("delta")
             .mode("overwrite")
-            .partitionBy(Target.PARTITION.value)
+            .clusterBy(*Target.LIQUID_KEYS.value)
             .option("enableChangeDataFeed", "true")
         )
         writer.saveAsTable(self.config.target_table)
