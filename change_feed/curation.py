@@ -155,7 +155,7 @@ class Curator:
         self.source_path = source_path
         self.target_path = target_path
         self.run_id = run_id
-        self.target_exists = self.spark.catalog.tableExists(self.target_path)
+        self.target_exists = spark.catalog.tableExists(target_path)
         self.run()
 
     def run(self) -> None:
