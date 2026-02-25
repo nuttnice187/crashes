@@ -54,7 +54,7 @@ class Target(Enum):
     Enumeration of target dataframe properties:
         - COLS: columns to curate from the bronze data
         - PRIMARY_KEY: primary key column name
-        - PARTITION: partition columns
+        - LIQUID_KEYS: cluster columns
     """
 
     COLS = (
