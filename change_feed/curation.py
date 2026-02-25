@@ -210,12 +210,7 @@ class Curator:
         self.logger.info(f"writing silver table to {self.target_path}")
         writer: DataFrameWriter = self.source.write.format("delta")
         
-        if self.target_exists:
-            writer = writer.mode("append")
-        else:
-            writer = (
-                writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
-            )
+        writer = writer.mode("append") if self.target_exists else writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
             
         writer.saveAsTable(self.target_path)
 
