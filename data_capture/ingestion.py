@@ -127,9 +127,7 @@ class Ingestor:
         if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
             if primary_key in self.source.columns and primary_key in target.columns:
-                self.source = self.source.join(
-                    target, on=primary_key, how="left_anti"
-                )
+                self.source = self.source.join(target, on=primary_key, how="left_anti")
                 self.logger.info(
                     f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.source.count()}"
                 )
