@@ -154,6 +154,7 @@ class Curator:
         self.source_path = source_path
         self.target_path = target_path
         self.run_id = run_id
+        self.target_exists = self.spark.catalog.tableExists(self.target_path)
         self.run()
 
     def run(self) -> None:
@@ -190,7 +191,7 @@ class Curator:
             .withColumn("run_id", lit(self.run_id))
         )
 
-        if self.spark.catalog.tableExists(self.target_path):
+        if self.target_exists:
             target: DataFrame = self.spark.read.table(self.target_path)
             self.source = self.source.join(
                 target, Target.PRIMARY_KEY.value, "left_anti"
@@ -207,11 +208,15 @@ class Curator:
             - partitionBy: crash_year, crash_month
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        writer: DataFrameWriter = (
-            self.source.write.format("delta")
-            .mode("append")
-            .clusterBy(*Target.LIQUID_KEYS.value)
-        )
+        writer: DataFrameWriter = self.source.write.format("delta")
+        
+        if self.target_exists:
+            writer = writer.mode("append")
+        else:
+            writer = (
+                writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
+            )
+            
         writer.saveAsTable(self.target_path)
 
 
