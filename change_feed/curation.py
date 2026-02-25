@@ -118,7 +118,12 @@ class Target(Enum):
         col("ingest_date"),
     )
     PRIMARY_KEY = "crash_record_id"
-    PARTITION = ("crash_year", "crash_month")
+    LIQUID_KEYS = (
+                    "report_type",
+                    "crash_type",
+                    "crash_date",
+                    "crash_record_id"
+                   )
 
 
 class Curator:
@@ -205,7 +210,7 @@ class Curator:
         writer: DataFrameWriter = (
             self.source.write.format("delta")
             .mode("append")
-            .partitionBy(*Target.PARTITION.value)
+            .clusterBy(*Target.LIQUID_KEYS.value)
         )
         writer.saveAsTable(self.target_path)
 
