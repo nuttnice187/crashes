@@ -137,6 +137,7 @@ class Curator:
     target_path: str
     run_id: str
     source: DataFrame
+    target_exists: bool
 
     def __init__(
         self,
@@ -205,11 +206,11 @@ class Curator:
         """
         write silver table to delta format using the following properties:
             - mode: append
-            - partitionBy: crash_year, crash_month
+            - clusterBy: Target.LIQUID_KEYS.value
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        writer: DataFrameWriter = self.source.write.format("delta")
         
+        writer: DataFrameWriter = self.source.write.format("delta")        
         writer = writer.mode("append") if self.target_exists else writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
             
         writer.saveAsTable(self.target_path)
