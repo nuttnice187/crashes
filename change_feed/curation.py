@@ -171,7 +171,10 @@ class Curator:
             - run_id: run_id
         :param cols: columns to curate from the bronze data
         """
-
+        
+        self.source = calculate_cols(self.source, self.run_id)
+        self.logger.info("calculated columns")
+        
         if self.target_exists:
             target: DataFrame = self.spark.read.table(self.target_path)
             max_target_ingest_date: datetime = (
@@ -190,8 +193,6 @@ class Curator:
         else:
             self.logger.info("no target table found, creating new table")
         self.logger.info(f"keeping {self.source.count()} records")
-        self.source = calculate_cols(self.source, self.run_id)
-        self.logger.info("calculated columns")
 
     def load(self) -> None:
         """
