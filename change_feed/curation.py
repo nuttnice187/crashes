@@ -6,7 +6,6 @@ from typing import Optional
 
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
-from pyspark.sql.column import Column
 from pyspark.sql.functions import (
     col,
     to_timestamp,
@@ -53,7 +52,6 @@ class Location(Enum):
 class Target(Enum):
     """
     Enumeration of target dataframe properties:
-        - COLS: columns to curate from the bronze data
         - PRIMARY_KEY: primary key column name
         - LIQUID_KEYS: cluster columns
     """
@@ -136,8 +134,9 @@ class Curator:
         run_id: str,
     ) -> None:
         """
-        constructor
+        construct and run
         """
+
         self.spark = spark.conf.set("spark.sql.parquet.mergeSchema", "true")
         self.logger = logger
         self.source_path = source_path
@@ -153,6 +152,7 @@ class Curator:
             - transform bronze data into the silver table
             - load silver table to delta format
         """
+
         self.extract()
         self.transform()
         self.load()
@@ -161,20 +161,29 @@ class Curator:
         """
         extract bronze data
         """
+
         self.source = self.spark.read.parquet(self.source_path)
 
-    def transform(self) -> None:
+    # TODO: resolve duplicate code in utils.py
+    def check_schema(self, target: DataFrame) -> None:
         """
-        transform bronze data into the silver table with the following columns:
-            - cols: columns to curate from the bronze data
-            - group_id: hash of the report_type, crash_type, and crash_date
-            - run_id: run_id
-        :param cols: columns to curate from the bronze data
+        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
+        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
         """
-        
-        self.source = calculate_cols(self.source, self.run_id)
-        self.logger.info("calculated columns")
-        
+        from pyspark.testing.utils import assertSchemasEqual
+
+        try:
+            assertSchemasEqual(self.source.schema, target.schema)
+        except AssertionError as e:
+            self.logger.warning(
+                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
+            )
+
+    def filter_if_exists(self) -> None:
+        """
+        filter out records that already exist in the target table
+        """
+
         if self.target_exists:
             target: DataFrame = self.spark.read.table(self.target_path)
             max_target_ingest_date: datetime = (
@@ -192,7 +201,17 @@ class Curator:
             self.check_schema(target)
         else:
             self.logger.info("no target table found, creating new table")
+
         self.logger.info(f"keeping {self.source.count()} records")
+
+    def transform(self) -> None:
+        """
+        transform bronze data into the silver table
+        """
+
+        self.source = calculate_cols(self.source, self.run_id)
+        self.logger.info("evaluated columns")
+        self.filter_if_exists()
 
     def load(self) -> None:
         """
@@ -201,6 +220,7 @@ class Curator:
             - clusterBy: Target.LIQUID_KEYS.value
             - option: mergeSchema
         """
+
         self.logger.info(f"writing silver table to {self.target_path}")
 
         writer: DataFrameWriter = self.source.write.format("delta").option(
@@ -214,26 +234,12 @@ class Curator:
 
         writer.saveAsTable(self.target_path)
 
-    # TODO: resolve duplicate code in utils.py
-    def check_schema(self, target: DataFrame) -> None:
-        """
-        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
-        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
-        """
-        from pyspark.testing.utils import assertSchemasEqual
-
-        try:
-            assertSchemasEqual(self.source.schema, target.schema)
-        except AssertionError as e:
-            self.logger.warning(
-                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
-            )
-
 
 def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiate the `Curator` class, using `args: Namespace` provided by `entry` point
     """
+
     assert args.run_id, "--run_id is required."
 
     Curator(
