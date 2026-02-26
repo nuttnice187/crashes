@@ -171,8 +171,10 @@ class Curator:
             - run_id: run_id
         :param cols: columns to curate from the bronze data
         """
+        
         self.source = calculate_cols(self.source, self.run_id)
-
+        self.logger.info("calculated columns")
+        
         if self.target_exists:
             target: DataFrame = self.spark.read.table(self.target_path)
             max_target_ingest_date: datetime = (
@@ -187,8 +189,9 @@ class Curator:
             self.source = self.source.filter(
                 col("ingest_date") > max_target_ingest_date
             )
-            self.logger.info(f"keeping {self.source.count()} records")
-
+            self.check_schema(target)
+        else:
+            self.logger.info("no target table found, creating new table")
         self.logger.info(f"keeping {self.source.count()} records")
 
     def load(self) -> None:
@@ -210,6 +213,21 @@ class Curator:
         )
 
         writer.saveAsTable(self.target_path)
+
+    # TODO: resolve duplicate code in utils.py
+    def check_schema(self, target: DataFrame) -> None:
+        """
+        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
+        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
+        """
+        from pyspark.testing.utils import assertSchemasEqual
+
+        try:
+            assertSchemasEqual(self.source.schema, target.schema)
+        except AssertionError as e:
+            self.logger.warning(
+                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
+            )
 
 
 def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
