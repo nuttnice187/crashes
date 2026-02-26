@@ -115,6 +115,8 @@ class Ingestor:
 
         if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
+            self.check_schema(target)
+
             if primary_key in self.source.columns and primary_key in target.columns:
                 self.source = self.source.join(target, on=primary_key, how="left_anti")
                 self.logger.info(
@@ -124,7 +126,6 @@ class Ingestor:
                 self.logger.warning(
                     f"Cannot perform left_anti join: '{primary_key}' not found in one or both dataframes. Loading all data from source."
                 )
-            self.check_schema(target)
         else:
             self.logger.info(
                 "No existing data to join with, or existing data is empty. Loading all data from source."
@@ -147,7 +148,7 @@ class Ingestor:
                 f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data."
             )
 
-        self.filter_if_parquet_exists(target)
+        self.filter_if_target_exists(target)
 
     def transform(self, spark: SparkSession, target_path: str) -> None:
         """
