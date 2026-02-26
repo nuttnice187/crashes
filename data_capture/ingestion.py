@@ -108,7 +108,7 @@ class Ingestor:
                 f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
             )
 
-    def filter_if_target_exists(self, target: Optional[DataFrame]) -> None:
+    def filter_if_target_exists(self, target: Optional[DataFrame] = None) -> None:
         """
         Filters the source DataFrame based on the existence of target Parquet.
         """
@@ -185,7 +185,7 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiates the Ingestor class with the provided arguments.
     """
-    
+
     Ingestor(
         spark=spark,
         logger=logger,
