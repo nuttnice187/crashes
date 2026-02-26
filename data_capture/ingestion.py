@@ -127,9 +127,7 @@ class Ingestor:
         if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
             if primary_key in self.source.columns and primary_key in target.columns:
-                self.source = self.source.join(
-                    target, on=primary_key, how="left_anti"
-                )
+                self.source = self.source.join(target, on=primary_key, how="left_anti")
                 self.logger.info(
                     f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.source.count()}"
                 )
@@ -137,17 +135,34 @@ class Ingestor:
                 self.logger.warning(
                     f"Cannot perform left_anti join: '{primary_key}' not found in one or both dataframes. Loading all data from source."
                 )
+            self.check_schema(target)
         else:
             self.logger.info(
                 "No existing data to join with, or existing data is empty. Loading all data from source."
+            )
+
+    def check_schema(self, target: DataFrame) -> None:
+        """
+        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
+        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
+        """
+        from pyspark.testing.utils import assertSchemasEqual
+
+        try:
+            assertSchemasEqual(self.source.schema, target.schema)
+        except AssertionError as e:
+            self.logger.warning(
+                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
             )
 
     def load(self, target_path: str) -> None:
         """
         Writes the transformed data to a Parquet file in the specified target path.
         """
-        writer: DataFrameWriter = self.source.write.mode("append").partitionBy(
-            *Target.PARTITION.value
+        writer: DataFrameWriter = (
+            self.source.write.mode("append")
+            .partitionBy(*Target.PARTITION.value)
+            .option("mergeSchema", "true")
         )
         writer.parquet(target_path)
 
