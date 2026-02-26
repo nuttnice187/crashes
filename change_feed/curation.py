@@ -57,73 +57,60 @@ class Target(Enum):
         - LIQUID_KEYS: cluster columns
     """
 
-    COLS = (
-        col("computed_region_rpca_8um6"),
-        col("alignment"),
-        col("beat_of_occurrence"),
-        to_date(to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")).alias(
-            "crash_date"
-        ),
-        to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
-            "crash_timestamp"
-        ),
-        col("crash_day_of_week").cast(IntegerType()),
-        col("crash_hour").cast(IntegerType()),
-        col("crash_month"),
-        col("crash_year"),
-        col("crash_record_id"),
-        col("crash_type"),
-        col("damage"),
-        to_date(
-            to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
-        ).alias("date_police_notified"),
-        to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS").alias(
-            "timestamp_police_notified"
-        ),
-        col("device_condition"),
-        col("first_crash_type"),
-        col("injuries_fatal").cast(IntegerType()),
-        col("injuries_incapacitating").cast(IntegerType()),
-        col("injuries_no_indication").cast(IntegerType()),
-        col("injuries_non_incapacitating").cast(IntegerType()),
-        col("injuries_reported_not_evident").cast(IntegerType()),
-        col("injuries_total").cast(IntegerType()),
-        col("injuries_unknown").cast(IntegerType()),
-        col("latitude").cast(DoubleType()),
-        col("lighting_condition"),
-        from_json(col("location"), Location.SCHEMA.value).alias("location"),
-        col("longitude").cast(DoubleType()),
-        col("most_severe_injury"),
-        col("num_units").cast(IntegerType()),
-        col("posted_speed_limit").cast(IntegerType()),
-        col("prim_contributory_cause"),
-        col("report_type"),
-        col("road_defect"),
-        col("roadway_surface_cond"),
-        col("sec_contributory_cause"),
-        col("street_direction"),
-        col("street_name"),
-        col("street_no"),
-        col("traffic_control_device"),
-        col("trafficway_type"),
-        col("weather_condition"),
-        col("intersection_related_i"),
-        col("statements_taken_i"),
-        col("hit_and_run_i"),
-        col("photos_taken_i"),
-        col("private_property_i"),
-        col("crash_date_est_i"),
-        col("work_zone_i"),
-        col("dooring_i"),
-        col("ingest_date"),
-    )
     PRIMARY_KEY = "crash_record_id"
-    LIQUID_KEYS = (
-                    "report_type",
-                    "crash_type",
-                    "crash_date",
-                    "crash_record_id"
-                   )
+    LIQUID_KEYS = ("report_type", "crash_type", "crash_date", "crash_record_id")
+
+
+def calculate_cols(source: DataFrame, run_id: str) -> DataFrame:
+    """
+    calculate columns
+    :param source: source dataframe
+    :param run_id: run id
+    :return: dataframe with calculated columns
+    """
+
+    return (
+        source.withColumn(
+            "crash_timestamp",
+            to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+        )
+        .withColumn("crash_date", to_date("crash_timestamp"))
+        .withColumn("crash_day_of_week", col("crash_day_of_week").cast(IntegerType()))
+        .withColumn("crash_hour", col("crash_hour").cast(IntegerType()))
+        .withColumn(
+            "timestamp_police_notified",
+            to_timestamp(col("date_police_notified"), "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+        )
+        .withColumn("date_police_notified", to_date("timestamp_police_notified"))
+        .withColumn("injuries_fatal", col("injuries_fatal").cast(IntegerType()))
+        .withColumn(
+            "injuries_incapacitating",
+            col("injuries_incapacitating").cast(IntegerType()),
+        )
+        .withColumn(
+            "injuries_no_indication", col("injuries_no_indication").cast(IntegerType())
+        )
+        .withColumn(
+            "injuries_non_incapacitating",
+            col("injuries_non_incapacitating").cast(IntegerType()),
+        )
+        .withColumn(
+            "injuries_reported_not_evident",
+            col("injuries_reported_not_evident").cast(IntegerType()),
+        )
+        .withColumn("injuries_total", col("injuries_total").cast(IntegerType()))
+        .withColumn("injuries_unknown", col("injuries_unknown").cast(IntegerType()))
+        .withColumn("latitude", col("latitude").cast(DoubleType()))
+        .withColumn("location", from_json(col("location"), Location.SCHEMA.value))
+        .withColumn("longitude", col("longitude").cast(DoubleType()))
+        .withColumn("num_units", col("num_units").cast(IntegerType()))
+        .withColumn("posted_speed_limit", col("posted_speed_limit").cast(IntegerType()))
+        .withColumn(
+            "group_id",
+            sha1(to_json(struct("report_type", "crash_type", "crash_date"))),
+        )
+        .withColumn("run_id", lit(run_id))
+    )
 
 
 class Curator:
@@ -166,7 +153,7 @@ class Curator:
             - load silver table to delta format
         """
         self.extract()
-        self.transform(*Target.COLS.value)
+        self.transform()
         self.load()
 
     def extract(self) -> None:
@@ -175,7 +162,7 @@ class Curator:
         """
         self.source = self.spark.read.parquet(self.source_path)
 
-    def transform(self, *cols: Column) -> None:
+    def transform(self) -> None:
         """
         transform bronze data into the silver table with the following columns:
             - cols: columns to curate from the bronze data
@@ -183,14 +170,7 @@ class Curator:
             - run_id: run_id
         :param cols: columns to curate from the bronze data
         """
-        self.source = (
-            self.source.select(*cols)
-            .withColumn(
-                "group_id",
-                sha1(to_json(struct("report_type", "crash_type", "crash_date"))),
-            )
-            .withColumn("run_id", lit(self.run_id))
-        )
+        self.source = calculate_cols(self.source, self.run_id)
 
         if self.target_exists:
             target: DataFrame = self.spark.read.table(self.target_path)
@@ -198,21 +178,26 @@ class Curator:
                 target, Target.PRIMARY_KEY.value, "left_anti"
             )
 
-        self.logger.info(
-            f"keeping {self.source.count()} records"
-        )
+        self.logger.info(f"keeping {self.source.count()} records")
 
     def load(self) -> None:
         """
         write silver table to delta format using the following properties:
             - mode: append
             - clusterBy: Target.LIQUID_KEYS.value
+            - option: mergeSchema
         """
         self.logger.info(f"writing silver table to {self.target_path}")
-        
-        writer: DataFrameWriter = self.source.write.format("delta")        
-        writer = writer.mode("append") if self.target_exists else writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
-            
+
+        writer: DataFrameWriter = self.source.write.format("delta").option(
+            "mergeSchema", "true"
+        )
+        writer = (
+            writer.mode("append")
+            if self.target_exists
+            else writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
+        )
+
         writer.saveAsTable(self.target_path)
 
 
