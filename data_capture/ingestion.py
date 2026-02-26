@@ -19,6 +19,7 @@ def dump_location(source: List[Dict]) -> List[Dict]:
     """
     convert location values of the api response to a json string
     """
+
     result = source.copy()
     for item in result:
         if "location" in item and item["location"] is not None:
@@ -64,6 +65,7 @@ class Ingestor:
         """
         Initializes the Ingestor with the provided SparkSession, API URL, and target path.
         """
+
         self.logger = logger
         self.extract(api_url)
         self.transform(spark, target_path)
@@ -74,6 +76,7 @@ class Ingestor:
         Fetches data from a given API URL and creates a Spark DataFrame from it.
         Includes retry mechanism for network resilience.
         """
+
         retries = Retry(
             total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
         )
@@ -90,39 +93,25 @@ class Ingestor:
 
         self.response_json = response.json()
 
-    def transform(self, spark: SparkSession, target_path: str) -> None:
+    def check_schema(self, target: DataFrame) -> None:
         """
-        Preprocesses 'location' field and handles existing data for incremental loading.
+        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
+        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
         """
-        self.source = (
-            spark.createDataFrame(dump_location(self.response_json))
-            .select(
-                "*",
-                year(
-                    to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
-                ).alias("crash_year"),
-                current_timestamp().alias("ingest_date"),
-            )
-            .withColumnRenamed(*Target.RENAMED.value)
-        )
 
-        self.check_existing(spark, target_path)
-
-    def check_existing(self, spark: SparkSession, target_path: str) -> None:
-        """
-        Checks for existing data in the target path and filters transformation for incremental loading.
-        """
-        target: Optional[DataFrame] = None
+        from pyspark.testing.utils import assertSchemasEqual
 
         try:
-            target = spark.read.parquet(target_path)
-            self.logger.info(
-                f"Successfully read existing Parquet data from {target_path}. Row count: {target.count()}"
-            )
-        except Exception as e:
+            assertSchemasEqual(self.source.schema, target.schema)
+        except AssertionError as e:
             self.logger.warning(
-                f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data."
+                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
             )
+
+    def filter_if_target_exists(self, target: Optional[DataFrame]) -> None:
+        """
+        Filters the source DataFrame based on the existence of target Parquet.
+        """
 
         if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
@@ -141,24 +130,49 @@ class Ingestor:
                 "No existing data to join with, or existing data is empty. Loading all data from source."
             )
 
-    def check_schema(self, target: DataFrame) -> None:
+    def check_existing(self, spark: SparkSession, target_path: str) -> None:
         """
-        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
-        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
+        Checks for existing data in the target path and filters transformation for incremental loading.
         """
-        from pyspark.testing.utils import assertSchemasEqual
+
+        target: Optional[DataFrame] = None
 
         try:
-            assertSchemasEqual(self.source.schema, target.schema)
-        except AssertionError as e:
-            self.logger.warning(
-                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
+            target = spark.read.parquet(target_path)
+            self.logger.info(
+                f"Successfully read existing Parquet data from {target_path}. Row count: {target.count()}"
             )
+        except Exception as e:
+            self.logger.warning(
+                f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data."
+            )
+
+        self.filter_if_parquet_exists(target)
+
+    def transform(self, spark: SparkSession, target_path: str) -> None:
+        """
+        Preprocesses 'location' field and handles existing data for incremental loading.
+        """
+
+        self.source = (
+            spark.createDataFrame(dump_location(self.response_json))
+            .select(
+                "*",
+                year(
+                    to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS")
+                ).alias("crash_year"),
+                current_timestamp().alias("ingest_date"),
+            )
+            .withColumnRenamed(*Target.RENAMED.value)
+        )
+
+        self.check_existing(spark, target_path)
 
     def load(self, target_path: str) -> None:
         """
         Writes the transformed data to a Parquet file in the specified target path.
         """
+
         writer: DataFrameWriter = (
             self.source.write.mode("append")
             .partitionBy(*Target.PARTITION.value)
@@ -171,6 +185,7 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiates the Ingestor class with the provided arguments.
     """
+    
     Ingestor(
         spark=spark,
         logger=logger,
