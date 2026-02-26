@@ -65,7 +65,7 @@ class Ingestor:
         """
         Initializes the Ingestor with the provided SparkSession, API URL, and target path.
         """
-
+        spark.conf.set("spark.sql.parquet.mergeSchema", "true")
         self.logger = logger
         self.extract(api_url)
         self.transform(spark, target_path)
