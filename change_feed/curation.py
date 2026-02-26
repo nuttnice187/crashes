@@ -137,7 +137,7 @@ class Curator:
         """
         constructor
         """
-        self.spark = spark
+        self.spark = spark.conf.set("spark.sql.parquet.mergeSchema", "true")
         self.logger = logger
         self.source_path = source_path
         self.target_path = target_path
