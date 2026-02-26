@@ -59,7 +59,7 @@ class Target(Enum):
     """
 
     PRIMARY_KEY = "crash_record_id"
-    LIQUID_KEYS = ("report_type", "crash_type", "crash_date", "ingest_date")
+    LIQUID_KEYS = ("run_id", "ingest_date", "group_id")
 
 
 def calculate_cols(source: DataFrame, run_id: str) -> DataFrame:
