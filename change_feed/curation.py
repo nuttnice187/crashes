@@ -189,8 +189,6 @@ class Curator:
             )
             self.logger.info(f"keeping {self.source.count()} records")
 
-        self.logger.info(f"keeping {self.source.count()} records")
-
     def load(self) -> None:
         """
         write silver table to delta format using the following properties:
