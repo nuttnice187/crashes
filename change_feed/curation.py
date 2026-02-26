@@ -206,11 +206,7 @@ class Curator:
 
     def transform(self) -> None:
         """
-        transform bronze data into the silver table with the following columns:
-            - cols: columns to curate from the bronze data
-            - group_id: hash of the report_type, crash_type, and crash_date
-            - run_id: run_id
-        :param cols: columns to curate from the bronze data
+        transform bronze data into the silver table
         """
 
         self.source = calculate_cols(self.source, self.run_id)
