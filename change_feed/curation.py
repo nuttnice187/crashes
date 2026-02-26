@@ -1,4 +1,5 @@
 from argparse import Namespace
+from datetime import datetime
 from enum import Enum
 from logging import Logger
 from typing import Optional
@@ -174,9 +175,19 @@ class Curator:
 
         if self.target_exists:
             target: DataFrame = self.spark.read.table(self.target_path)
-            self.source = self.source.join(
-                target, Target.PRIMARY_KEY.value, "left_anti"
+            max_target_ingest_date: datetime = (
+                target.select("ingest_date")
+                .orderBy(col("ingest_date").desc())
+                .limit(1)
+                .collect()[0][0]
             )
+            self.logger.info(
+                f"fitering source data for records ingested after {max_target_ingest_date}"
+            )
+            self.source = self.source.filter(
+                col("ingest_date") > max_target_ingest_date
+            )
+            self.logger.info(f"keeping {self.source.count()} records")
 
         self.logger.info(f"keeping {self.source.count()} records")
 
