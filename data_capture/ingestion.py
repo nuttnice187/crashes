@@ -135,9 +135,24 @@ class Ingestor:
                 self.logger.warning(
                     f"Cannot perform left_anti join: '{primary_key}' not found in one or both dataframes. Loading all data from source."
                 )
+            self.check_schema(target)
         else:
             self.logger.info(
                 "No existing data to join with, or existing data is empty. Loading all data from source."
+            )
+
+    def check_schema(self, target: DataFrame) -> None:
+        """
+        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
+        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
+        """
+        from pyspark.testing.utils import assertSchemasEqual
+
+        try:
+            assertSchemasEqual(self.source.schema, target.schema)
+        except AssertionError as e:
+            self.logger.warning(
+                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
             )
 
     def load(self, target_path: str) -> None:
