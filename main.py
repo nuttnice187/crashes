@@ -66,7 +66,7 @@ class JobTask:
         Get logger
         """
 
-        level = int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
+        level: int = int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
 
         logger: Logger = getLogger(__name__)
         console_handler = StreamHandler()
