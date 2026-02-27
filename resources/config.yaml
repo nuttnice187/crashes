@@ -5,7 +5,7 @@ resources:
       tasks:
         - task_key: curation
           spark_python_task:
-            python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/entry.py
+            python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/main.py
             parameters:
               - --job
               - "{{job.name}}"
@@ -22,7 +22,7 @@ resources:
           depends_on:
             - task_key: curation
           spark_python_task:
-            python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/entry.py
+            python_file: /Workspace/Users/phillipraywood@icloud.com/crashes/main.py
             parameters:
               - --job
               - "{{job.name}}"

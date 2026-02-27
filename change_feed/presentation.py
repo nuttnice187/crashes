@@ -130,7 +130,7 @@ class Presentor:
             self.logger.info("Target table exists. Performing merge.")
             self.merge()
         else:
-            self.logger("Target table does not exist. Creating new table")
+            self.logger.info("Target table does not exist. Creating new table")
             self.overwrite()
 
     def merge(self) -> None:

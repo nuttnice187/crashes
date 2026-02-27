@@ -68,7 +68,7 @@ def calculate_cols(source: DataFrame, run_id: str) -> DataFrame:
     :return: dataframe with calculated columns
     """
 
-    return (
+    result = (
         source.withColumn(
             "crash_timestamp",
             to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss.SSS"),
@@ -111,6 +111,11 @@ def calculate_cols(source: DataFrame, run_id: str) -> DataFrame:
         .withColumn("run_id", lit(run_id))
     )
 
+    return result.select(
+        *Target.LIQUID_KEYS.value,
+        *[col for col in result.columns if col not in Target.LIQUID_KEYS.value],
+    )
+
 
 class Curator:
     """
@@ -136,8 +141,6 @@ class Curator:
         """
         construct and run
         """
-
-        spark.conf.set("spark.sql.parquet.mergeSchema", "true")
 
         self.spark = spark
         self.logger = logger
@@ -200,7 +203,7 @@ class Curator:
 
         self.source = calculate_cols(self.source, self.run_id)
 
-        self.logger.info("Evaluated columns")
+        self.logger.info(f"Evaluated columns.")
         self.filter_if_exists()
 
     def load(self) -> None:
@@ -210,6 +213,12 @@ class Curator:
             - clusterBy: Target.LIQUID_KEYS.value
             - option: mergeSchema
         """
+
+        # Ensure clustering columns exist in the DataFrame
+        for col_name in Target.LIQUID_KEYS.value:
+            if col_name not in self.source.columns:
+                self.logger.error(f"Missing clustering column: {col_name}")
+                raise Exception(f"Missing clustering column: {col_name}")
 
         writer: DataFrameWriter = self.source.write.format("delta").option(
             "mergeSchema", "true"
