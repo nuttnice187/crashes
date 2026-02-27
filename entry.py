@@ -70,7 +70,7 @@ def get_job_task(args: Namespace) -> str:
     return "{package}.{module}".format(package=args.job, module=args.task)
 
 
-def get_main_process(
+def import_main(
     root: str, job_task: str, logger: Logger
 ) -> Callable[[SparkSession, Logger, Namespace], None]:
     """
@@ -90,10 +90,9 @@ def get_main_process(
 
 if __name__ == "__main__":
     args: Namespace = parse_argv()
-    job_task: str = get_job_task(args)
     logger: Logger = get_logger(__name__, LOG_LEVEL)
-    main: Callable[[SparkSession, Logger, Namespace], None] = get_main_process(
-        ROOT, job_task, logger
+    main: Callable[[SparkSession, Logger, Namespace], None] = import_main(
+        ROOT, job_task=get_job_task(args), logger=logger
     )
 
     logger.info(args)
