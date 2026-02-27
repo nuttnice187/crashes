@@ -62,9 +62,14 @@ class Presentor:
     source: DataFrame
 
     def __init__(self, spark: SparkSession, logger: Logger, config: Config) -> None:
+        """
+        construct, run
+        """
+
         self.config = config
         self.logger = logger
         self.spark = spark
+        
         self.run()
 
     def run(self) -> None:
@@ -73,6 +78,7 @@ class Presentor:
         - Aggregation, summarization
         - Write to gold delta table
         """
+
         self.extract()
         self.transform()
         self.load()
@@ -82,6 +88,7 @@ class Presentor:
         Read from silver delta table
         - Filter by run_id
         """
+
         self.source = self.spark.read.table(self.config.source_table).filter(
             col("run_id") == self.config.run_id
         )
@@ -91,6 +98,7 @@ class Presentor:
         Apply any required
         - Aggregation, summarization
         """
+
         self.source = (
             self.source.groupBy(
                 col("group_id").alias("id"),
@@ -117,6 +125,7 @@ class Presentor:
         - overwrite if table does not exist
 
         """
+
         if self.spark.catalog.tableExists(self.config.target_table):
             self.logger.info("Target table exists. Performing merge.")
             self.merge()
@@ -128,6 +137,7 @@ class Presentor:
         """
         merge
         """
+
         target: DeltaTable = DeltaTable.forName(self.spark, self.config.target_table)
         merge_metrics: DataFrame = (
             target.alias("t")
@@ -136,6 +146,7 @@ class Presentor:
             .whenMatchedUpdate(set=Target.UPDATE.value)
             .execute()
         )
+
         [
             self.logger.info("{}: {}".format(k, v))
             for k, v in merge_metrics.collect()[0].asDict().items()
@@ -145,12 +156,14 @@ class Presentor:
         """
         overwrite
         """
+
         writer: DataFrameWriter = (
             self.source.write.format("delta")
             .mode("overwrite")
             .clusterBy(*Target.LIQUID_KEYS.value)
             .option("enableChangeDataFeed", "true")
         )
+
         writer.saveAsTable(self.config.target_table)
 
 
@@ -158,6 +171,7 @@ def main(spark: SparkSession, logger: Logger, args: Namespace) -> None:
     """
     Instantiate the Presentor class
     """
+
     assert args.source_path, "--source_path is required"
     assert args.target_path, "--target_path is required"
     assert args.run_id, "--run_id is required"
