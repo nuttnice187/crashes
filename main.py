@@ -51,7 +51,7 @@ class JobTask:
 
     def set_name(self) -> None:
         """
-        Get job task from command line arguments
+        Set job task from command line arguments
         """
 
         assert self.args.job, "--job is required."
@@ -63,7 +63,7 @@ class JobTask:
 
     def set_logger(self) -> None:
         """
-        Get logger
+        Set logger
         """
 
         level: int = int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
