@@ -20,7 +20,7 @@ class JobTask:
     def __init__(self):
         self.parse_argv()
         self.get_name()
-        self.get_logger(self.args.log_level if self.args.log_level else LOG_LEVEL)
+        self.get_logger()
 
     def run(self) -> None:
         """
