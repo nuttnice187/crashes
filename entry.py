@@ -92,7 +92,9 @@ if __name__ == "__main__":
     args: Namespace = parse_argv()
     job_task: str = get_job_task(args)
     logger: Logger = get_logger(__name__)
-    main: Callable[[SparkSession, Logger, Namespace], None] = get_main_process(ROOT, job_task)
+    main: Callable[[SparkSession, Logger, Namespace], None] = get_main_process(
+        ROOT, job_task, logger
+    )
 
     logger.info(args)
     main(SparkSession.builder.getOrCreate(), logger, args)
