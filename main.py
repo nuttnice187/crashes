@@ -22,36 +22,12 @@ class JobTask:
 
     def __init__(self):
         self.parse_argv()
-        self.get_name()
-        self.get_logger()
-
-    def get_logger(self) -> None:
-        """
-        Get logger
-        Args:
-            name (str): logger name
-        Returns:
-            Logger
-        """
-
-        level = int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
-
-        logger: Logger = getLogger(__name__)
-        console_handler = StreamHandler()
-        formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-        logger.setLevel(level)
-        console_handler.setLevel(level)
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
-
-        self.logger = logger
+        self.set_name()
+        self.set_logger()
 
     def parse_argv(self) -> None:
         """
         Parse command line arguments
-        Returns:
-            Namespace: parsed arguments
         """
 
         parser = ArgumentParser(
@@ -73,11 +49,9 @@ class JobTask:
 
         self.args, unknown = parser.parse_known_args()
 
-    def get_name(self) -> None:
+    def set_name(self) -> None:
         """
         Get job task from command line arguments
-        Returns:
-            str: job task
         """
 
         assert self.args.job, "--job is required."
@@ -86,6 +60,24 @@ class JobTask:
         self.name: str = "{package}.{module}".format(
             package=self.args.job, module=self.args.task
         )
+
+    def set_logger(self) -> None:
+        """
+        Get logger
+        """
+
+        level = int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
+
+        logger: Logger = getLogger(__name__)
+        console_handler = StreamHandler()
+        formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+        logger.setLevel(level)
+        console_handler.setLevel(level)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+
+        self.logger = logger
 
     def get_main_process(self) -> Callable[[SparkSession, Logger, Namespace], None]:
         """
