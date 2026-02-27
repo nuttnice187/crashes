@@ -2,7 +2,6 @@ import sys
 
 from argparse import ArgumentParser, Namespace
 from importlib import import_module
-
 from logging import getLogger, INFO, Formatter, Logger, StreamHandler
 from typing import Callable
 
@@ -11,7 +10,7 @@ from pyspark.sql import SparkSession
 ROOT: str = "crashes"
 
 
-def get_logger(name: str) -> Logger:
+def get_logger(name: str, level: int) -> Logger:
     """
     Get logger
     Args:
@@ -24,8 +23,8 @@ def get_logger(name: str) -> Logger:
     console_handler = StreamHandler()
     formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-    logger.setLevel(INFO)
-    console_handler.setLevel(INFO)
+    logger.setLevel(level)
+    console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
@@ -91,7 +90,7 @@ def get_main_process(
 if __name__ == "__main__":
     args: Namespace = parse_argv()
     job_task: str = get_job_task(args)
-    logger: Logger = get_logger(__name__)
+    logger: Logger = get_logger(__name__, INFO)
     main: Callable[[SparkSession, Logger, Namespace], None] = get_main_process(
         ROOT, job_task, logger
     )
