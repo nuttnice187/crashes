@@ -6,14 +6,14 @@ from logging import Logger
 from typing import Dict, List, Optional
 from utils import catch_schema_mismatch
 
-from urllib3.util.retry import Retry
+from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
+from pyspark.sql.functions import col, current_timestamp, to_timestamp, year
+from pyspark.sql.types import StringType
 
 from requests import get, Response, Session
 from requests.adapters import HTTPAdapter
 
-from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
-from pyspark.sql.functions import col, current_timestamp, to_timestamp, year
-from pyspark.sql.types import StringType
+from urllib3.util.retry import Retry
 
 
 class Default(Enum):
@@ -41,6 +41,7 @@ def dump_location(source: List[Dict]) -> List[Dict]:
     """
 
     result = source.copy()
+
     for item in result:
         if "location" in item and item["location"] is not None:
             location_value = item["location"]
@@ -48,6 +49,7 @@ def dump_location(source: List[Dict]) -> List[Dict]:
                 item["location"] = json.dumps(location_value)
             else:
                 item["location"] = str(location_value)
+
     return result
 
 
@@ -66,8 +68,11 @@ class Ingestor:
         """
         Initializes the Ingestor with the provided SparkSession, API URL, and target path.
         """
+
         spark.conf.set("spark.sql.parquet.mergeSchema", "true")
+
         self.logger = logger
+
         self.extract(api_url)
         self.transform(spark, target_path)
         self.load(target_path)
@@ -78,15 +83,17 @@ class Ingestor:
         Includes retry mechanism for network resilience.
         """
 
+        response: Optional[Response] = None
         retries = Retry(
             total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
         )
         session = Session()
-        session.mount("https://", HTTPAdapter(max_retries=retries))
 
-        response: Optional[Response] = None
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        
         try:
             response = session.get(api_url)
+
             response.raise_for_status()
         except Exception as e:
             self.logger.error(f"Failed to fetch data from {api_url} after retries: {e}")
@@ -94,17 +101,19 @@ class Ingestor:
 
         self.response_json = response.json()
 
-    def filter_if_target_exists(self, target: Optional[DataFrame] = None) -> None:
+    def filter_if_exists(self, target: Optional[DataFrame] = None) -> None:
         """
         Filters the source DataFrame based on the existence of target Parquet.
         """
 
         if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
+
             catch_schema_mismatch(self.source.schema, target.schema, self.logger)
 
             if primary_key in self.source.columns and primary_key in target.columns:
                 self.source = self.source.join(target, on=primary_key, how="left_anti")
+
                 self.logger.info(
                     f"Performed left_anti join with existing data on '{primary_key}'. New records count: {self.source.count()}"
                 )
@@ -126,6 +135,7 @@ class Ingestor:
 
         try:
             target = spark.read.parquet(target_path)
+
             self.logger.info(
                 f"Successfully read existing Parquet data from {target_path}. Row count: {target.count()}"
             )
@@ -134,7 +144,7 @@ class Ingestor:
                 f"Could not read existing Parquet data from {target_path}: {e}. Proceeding without existing data."
             )
 
-        self.filter_if_target_exists(target)
+        self.filter_if_exists(target)
 
     def transform(self, spark: SparkSession, target_path: str) -> None:
         """
@@ -165,6 +175,7 @@ class Ingestor:
             .partitionBy(*Target.PARTITION.value)
             .option("mergeSchema", "true")
         )
+
         writer.parquet(target_path)
 
 

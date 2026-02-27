@@ -136,13 +136,16 @@ class Curator:
         """
         construct and run
         """
+
         spark.conf.set("spark.sql.parquet.mergeSchema", "true")
+
         self.spark = spark
         self.logger = logger
         self.source_path = source_path
         self.target_path = target_path
         self.run_id = run_id
         self.target_exists = spark.catalog.tableExists(target_path)
+
         self.run()
 
     def run(self) -> None:
@@ -177,15 +180,13 @@ class Curator:
                 .limit(1)
                 .collect()[0][0]
             )
-
-            self.logger.info(
-                f"fitering source data for records ingested after {max_target_ingest_date}"
-            )
-
             self.source = self.source.filter(
                 col("ingest_date") > max_target_ingest_date
             )
 
+            self.logger.info(
+                f"fitering source data for records ingested after {max_target_ingest_date}"
+            )
             catch_schema_mismatch(self.source.schema, target.schema, self.logger)
         else:
             self.logger.info("no target table found, creating new table")
@@ -198,7 +199,8 @@ class Curator:
         """
 
         self.source = calculate_cols(self.source, self.run_id)
-        self.logger.info("evaluated columns")
+
+        self.logger.info("Evaluated columns")
         self.filter_if_exists()
 
     def load(self) -> None:
@@ -209,8 +211,6 @@ class Curator:
             - option: mergeSchema
         """
 
-        self.logger.info(f"writing silver table to {self.target_path}")
-
         writer: DataFrameWriter = self.source.write.format("delta").option(
             "mergeSchema", "true"
         )
@@ -220,6 +220,7 @@ class Curator:
             else writer.mode("overwrite").clusterBy(*Target.LIQUID_KEYS.value)
         )
 
+        self.logger.info(f"writing silver table to {self.target_path}")
         writer.saveAsTable(self.target_path)
 
 
