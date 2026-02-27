@@ -8,6 +8,7 @@ from typing import Callable
 from pyspark.sql import SparkSession
 
 ROOT: str = "crashes"
+LOG_LEVEL: int = INFO
 
 
 def get_logger(name: str, level: int) -> Logger:
@@ -90,7 +91,7 @@ def get_main_process(
 if __name__ == "__main__":
     args: Namespace = parse_argv()
     job_task: str = get_job_task(args)
-    logger: Logger = get_logger(__name__, INFO)
+    logger: Logger = get_logger(__name__, LOG_LEVEL)
     main: Callable[[SparkSession, Logger, Namespace], None] = get_main_process(
         ROOT, job_task, logger
     )
