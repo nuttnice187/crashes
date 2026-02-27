@@ -1,14 +1,17 @@
 import sys
 
 from argparse import ArgumentParser, Namespace
+from enum import Enum
 from importlib import import_module
 from logging import getLogger, INFO, Formatter, Logger, StreamHandler
 from typing import Callable, Optional
 
 from pyspark.sql import SparkSession
 
-ROOT: str = "crashes"
-LOG_LEVEL: int = INFO
+
+class Default(Enum):
+    ROOT = "crashes"
+    LOG_LEVEL = INFO
 
 
 class JobTask:
@@ -22,16 +25,6 @@ class JobTask:
         self.get_name()
         self.get_logger()
 
-    def run(self) -> None:
-        """
-        Run job task
-        """
-
-        main = self.get_main_process()
-
-        self.logger.info(self.args)
-        main(SparkSession.builder.getOrCreate(), self.logger, self.args)
-
     def get_logger(self) -> None:
         """
         Get logger
@@ -41,7 +34,7 @@ class JobTask:
             Logger
         """
 
-        level = self.args.log_level if self.args.log_level else LOG_LEVEL
+        level = self.args.log_level if self.args.log_level else Default.LOG_LEVEL.value
 
         logger: Logger = getLogger(__name__)
         console_handler = StreamHandler()
@@ -101,7 +94,7 @@ class JobTask:
             Callable[[SparkSession, Logger, Namespace], None]: main process
         """
 
-        self.root = self.args.root if self.args.root else ROOT
+        self.root = self.args.root if self.args.root else Default.ROOT.value
 
         if self.root in sys.path:
             self.logger.info(f"'{self.root}' already in sys.path")
@@ -110,6 +103,16 @@ class JobTask:
             self.logger.info(f"Added '{self.root}' to sys.path")
 
         return import_module(self.name).main
+
+    def run(self) -> None:
+        """
+        Run job task
+        """
+
+        main = self.get_main_process()
+
+        self.logger.info(self.args)
+        main(SparkSession.builder.getOrCreate(), self.logger, self.args)
 
 
 if __name__ == "__main__":
