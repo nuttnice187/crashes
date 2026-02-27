@@ -4,6 +4,7 @@ from argparse import Namespace
 from enum import Enum
 from logging import Logger
 from typing import Dict, List, Optional
+from utils import catch_schema_mismatch
 
 from urllib3.util.retry import Retry
 
@@ -13,22 +14,6 @@ from requests.adapters import HTTPAdapter
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 from pyspark.sql.functions import col, current_timestamp, to_timestamp, year
 from pyspark.sql.types import StringType
-
-
-def dump_location(source: List[Dict]) -> List[Dict]:
-    """
-    convert location values of the api response to a json string
-    """
-
-    result = source.copy()
-    for item in result:
-        if "location" in item and item["location"] is not None:
-            location_value = item["location"]
-            if isinstance(location_value, (dict, list)):
-                item["location"] = json.dumps(location_value)
-            else:
-                item["location"] = str(location_value)
-    return result
 
 
 class Default(Enum):
@@ -48,6 +33,22 @@ class Target(Enum):
     RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
     PRIMARY_KEY = "crash_record_id"
     PARTITION = ("crash_year", "crash_month")
+
+
+def dump_location(source: List[Dict]) -> List[Dict]:
+    """
+    Convert location values of the api response to a json string
+    """
+
+    result = source.copy()
+    for item in result:
+        if "location" in item and item["location"] is not None:
+            location_value = item["location"]
+            if isinstance(location_value, (dict, list)):
+                item["location"] = json.dumps(location_value)
+            else:
+                item["location"] = str(location_value)
+    return result
 
 
 class Ingestor:
@@ -93,21 +94,6 @@ class Ingestor:
 
         self.response_json = response.json()
 
-    def check_schema(self, target: DataFrame) -> None:
-        """
-        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
-        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
-        """
-
-        from pyspark.testing.utils import assertSchemasEqual
-
-        try:
-            assertSchemasEqual(self.source.schema, target.schema)
-        except AssertionError as e:
-            self.logger.warning(
-                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
-            )
-
     def filter_if_target_exists(self, target: Optional[DataFrame] = None) -> None:
         """
         Filters the source DataFrame based on the existence of target Parquet.
@@ -115,7 +101,7 @@ class Ingestor:
 
         if target is not None and not target.isEmpty():
             primary_key = Target.PRIMARY_KEY.value
-            self.check_schema(target)
+            catch_schema_mismatch(self.source.schema, target.schema, self.logger)
 
             if primary_key in self.source.columns and primary_key in target.columns:
                 self.source = self.source.join(target, on=primary_key, how="left_anti")

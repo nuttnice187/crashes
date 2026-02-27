@@ -3,9 +3,9 @@ from datetime import datetime
 from enum import Enum
 from logging import Logger
 from typing import Optional
+from utils import catch_schema_mismatch
 
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
-
 from pyspark.sql.functions import (
     col,
     to_timestamp,
@@ -164,21 +164,6 @@ class Curator:
 
         self.source = self.spark.read.parquet(self.source_path)
 
-    # TODO: resolve duplicate code in utils.py
-    def check_schema(self, target: DataFrame) -> None:
-        """
-        Checks if the schema of the source DataFrame matches the schema of the target DataFrame.
-        Uses assertSchemasEqual for strict schema validation and logs assertion errors.
-        """
-        from pyspark.testing.utils import assertSchemasEqual
-
-        try:
-            assertSchemasEqual(self.source.schema, target.schema)
-        except AssertionError as e:
-            self.logger.warning(
-                f"Schema mismatch detected: {e}. Source schema: {self.source.schema}, Target schema: {target.schema}. Attempting to merge schemas."
-            )
-
     def filter_if_exists(self) -> None:
         """
         filter out records that already exist in the target table
@@ -192,13 +177,16 @@ class Curator:
                 .limit(1)
                 .collect()[0][0]
             )
+
             self.logger.info(
                 f"fitering source data for records ingested after {max_target_ingest_date}"
             )
+
             self.source = self.source.filter(
                 col("ingest_date") > max_target_ingest_date
             )
-            self.check_schema(target)
+
+            catch_schema_mismatch(self.source.schema, target.schema, self.logger)
         else:
             self.logger.info("no target table found, creating new table")
 
