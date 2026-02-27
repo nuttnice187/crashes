@@ -10,16 +10,26 @@ from pyspark.sql import SparkSession
 
 ROOT: str = "crashes"
 
-L: Logger = getLogger(__name__)
-L.setLevel(INFO)
 
-console_handler = StreamHandler()
-console_handler.setLevel(INFO)
+def get_logger(name: str) -> Logger:
+    """
+    Get logger
+    Args:
+        name (str): logger name
+    Returns:
+        Logger
+    """
 
-formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-console_handler.setFormatter(formatter)
+    logger: Logger = getLogger(name)
+    console_handler = StreamHandler()
+    formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-L.addHandler(console_handler)
+    logger.setLevel(INFO)
+    console_handler.setLevel(INFO)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    return logger
 
 
 def parse_argv() -> Namespace:
@@ -28,6 +38,7 @@ def parse_argv() -> Namespace:
     Returns:
         Namespace: parsed arguments
     """
+
     parser = ArgumentParser(
         description="Ingest data from API into Spark and save as Parquet."
         "Curate silver delta table from ingested datasource."
@@ -42,25 +53,48 @@ def parse_argv() -> Namespace:
     parser.add_argument("--run_id", type=str, help="databricks metadata for job run.")
 
     args, unknown = parser.parse_known_args()
+
     return args
 
 
-if __name__ == "__main__":
-    args: Namespace = parse_argv()
-    L.info(args)
+def get_job_task(args: Namespace) -> str:
+    """
+    Get job task from command line arguments
+    Returns:
+        str: job task
+    """
 
     assert args.job, "--job is required."
     assert args.task, "--task is required."
 
-    job_task: str = "{package}.{module}".format(package=args.job, module=args.task)
+    return "{package}.{module}".format(package=args.job, module=args.task)
 
-    if ROOT in sys.path:
-        L.info(f"'{ROOT}' already in sys.path")
+
+def get_main_process(
+    root: str, job_task: str, logger: Logger
+) -> Callable[[SparkSession, Logger, Namespace], None]:
+    """
+    Get main process from command line arguments
+    Returns:
+        Callable[[SparkSession, Logger, Namespace], None]: main process
+    """
+
+    if root in sys.path:
+        logger.info(f"'{root}' already in sys.path")
     else:
-        sys.path.insert(0, ROOT)
-        L.info(f"Added '{ROOT}' to sys.path")
+        sys.path.insert(0, root)
+        logger.info(f"Added '{root}' to sys.path")
 
-    main: Callable[[SparkSession, Logger, Namespace], None] = import_module(
-        job_task
-    ).main
-    main(SparkSession.builder.getOrCreate(), L, args)
+    return import_module(job_task).main
+
+
+if __name__ == "__main__":
+    args: Namespace = parse_argv()
+    job_task: str = get_job_task(args)
+    logger: Logger = get_logger(__name__)
+    main: Callable[[SparkSession, Logger, Namespace], None] = get_main_process(
+        ROOT, job_task, logger
+    )
+
+    logger.info(args)
+    main(SparkSession.builder.getOrCreate(), logger, args)
