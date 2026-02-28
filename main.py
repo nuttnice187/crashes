@@ -45,8 +45,6 @@ class JobTask:
     def __init__(self, config: Default) -> None:
         """
         Initialize job task
-        Args:
-            arg_configs (Tuple[str, Dict[str, Union[type, str]]]): command line arguments to add to the parser
         """
 
         self.config = config
