@@ -16,6 +16,9 @@ class Default(Enum):
 
     ROOT = "crashes"
     LOG_LEVEL = INFO
+    PARSER_DESC = "Ingest data from API into Spark and save as Parquet."
+        "Curate silver delta table from ingested datasource."
+        "Present gold delta table from curated change feed."
     ARG_CONFIGS = (
         ("--job", dict(type=str, help="Python package name.")),
         ("--task", dict(type=str, help="Python module name.")),
@@ -37,30 +40,29 @@ class JobTask:
     args: Namespace
     name: str
     root: str
+    default_config: Default
 
-    def __init__(self, *arg_configs: Tuple[str, Dict[str, Union[type, str]]]) -> None:
+    def __init__(self, default_config: Default) -> None:
         """
         Initialize job task
         Args:
             arg_configs (Tuple[str, Dict[str, Union[type, str]]]): command line arguments to add to the parser
         """
 
-        self.parse_argv(*arg_configs)
+        self.default_config = default_config
+
+        self.parse_argv()
         self.set_name()
         self.set_logger()
 
-    def parse_argv(self, *arg_configs: Tuple[str, Dict[str, Union[type, str]]]) -> None:
+    def parse_argv(self) -> None:
         """
         Parse command line arguments
         """
 
-        parser = ArgumentParser(
-            description="Ingest data from API into Spark and save as Parquet."
-            "Curate silver delta table from ingested datasource."
-            "Present gold delta table from curated change feed."
-        )
+        parser = ArgumentParser(description=self.default_config.PARSER_DESC.value)
 
-        [parser.add_argument(arg, **kwargs) for arg, kwargs in arg_configs]
+        [parser.add_argument(arg, **kwargs) for arg, kwargs in self.default_config.ARG_CONFIGS.value]
 
         self.args, unknown = parser.parse_known_args()
 
@@ -82,7 +84,7 @@ class JobTask:
         """
 
         level: int = (
-            int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
+            int(self.args.log_level) if self.args.log_level else self.default_config.LOG_LEVEL.value
         )
 
         logger: Logger = getLogger(__name__)
@@ -103,7 +105,7 @@ class JobTask:
             Callable[[SparkSession, Logger, Namespace], None]: main process
         """
 
-        self.root = self.args.root if self.args.root else Default.ROOT.value
+        self.root = self.args.root if self.args.root else self.default_config.ROOT.value
 
         if self.root in sys.path:
             self.logger.info(f"'{self.root}' already in sys.path")
@@ -125,5 +127,5 @@ class JobTask:
 
 
 if __name__ == "__main__":
-    job_task = JobTask(*Default.ARG_CONFIGS.value)
+    job_task = JobTask(Default)
     job_task.run()
