@@ -18,9 +18,7 @@ class Default(Enum):
         ("--api_url", dict(type=str, help="API URL to fetch data from.")),
         ("--source_path", dict(type=str, help="Source path to read from.")),
         ("--target_path", dict(type=str, help="Target path to write to.")),
-        (
-            "--run_id", dict(type=str, help="databricks metadata for job run."
-        )
+        ("--run_id", dict(type=str, help="databricks metadata for job run.")),
         ("--log_level", dict(type=str, help="Log level to use.")),
         ("--root", dict(type=str, help="Root directory.")
     )
@@ -111,5 +109,5 @@ class JobTask:
 
 
 if __name__ == "__main__":
-    job_task = JobTask()
+    job_task = JobTask(*Default.ARG_CONFIGS.value)
     job_task.run()
