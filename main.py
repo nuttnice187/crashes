@@ -57,7 +57,7 @@ class JobTask:
         assert self.args.job, "--job is required."
         assert self.args.task, "--task is required."
 
-        self.name: str = "{package}.{module}".format(
+        self.name = "{package}.{module}".format(
             package=self.args.job, module=self.args.task
         )
 
