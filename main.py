@@ -10,6 +10,10 @@ from pyspark.sql import SparkSession
 
 
 class Default(Enum):
+    """
+    Default values for job task
+    """
+
     ROOT = "crashes"
     LOG_LEVEL = INFO
     ARG_CONFIGS = (
@@ -20,17 +24,27 @@ class Default(Enum):
         ("--target_path", dict(type=str, help="Target path to write to.")),
         ("--run_id", dict(type=str, help="databricks metadata for job run.")),
         ("--log_level", dict(type=str, help="Log level to use.")),
-        ("--root", dict(type=str, help="Root directory."))
+        ("--root", dict(type=str, help="Root directory.")),
     )
 
 
 class JobTask:
+    """
+    Job task
+    """
+
     logger: Logger
     args: Namespace
     name: str
     root: str
 
     def __init__(self, *arg_configs: Tuple[str, Dict[str, Union[type, str]]]) -> None:
+        """
+        Initialize job task
+        Args:
+            arg_configs (Tuple[str, Dict[str, Union[type, str]]]): command line arguments to add to the parser
+        """
+
         self.parse_argv(*arg_configs)
         self.set_name()
         self.set_logger()
@@ -67,7 +81,9 @@ class JobTask:
         Set logger
         """
 
-        level: int = int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
+        level: int = (
+            int(self.args.log_level) if self.args.log_level else Default.LOG_LEVEL.value
+        )
 
         logger: Logger = getLogger(__name__)
         console_handler = StreamHandler()
