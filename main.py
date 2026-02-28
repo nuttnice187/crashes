@@ -49,11 +49,11 @@ class JobTask:
 
         self.config = config
 
-        self.parse_argv()
-        self.set_name()
-        self.set_logger()
+        self._parse_argv()
+        self._set_name()
+        self._set_logger()
 
-    def parse_argv(self) -> None:
+    def _parse_argv(self) -> None:
         """
         Parse command line arguments
         """
@@ -64,7 +64,7 @@ class JobTask:
 
         self.args, unknown = parser.parse_known_args()
 
-    def set_name(self) -> None:
+    def _set_name(self) -> None:
         """
         Set job task from command line arguments
         """
@@ -76,7 +76,7 @@ class JobTask:
             package=self.args.job, module=self.args.task
         )
 
-    def set_logger(self) -> None:
+    def _set_logger(self) -> None:
         """
         Set logger
         """
