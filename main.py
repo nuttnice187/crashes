@@ -20,7 +20,7 @@ class Default(Enum):
         ("--target_path", dict(type=str, help="Target path to write to.")),
         ("--run_id", dict(type=str, help="databricks metadata for job run.")),
         ("--log_level", dict(type=str, help="Log level to use.")),
-        ("--root", dict(type=str, help="Root directory.")
+        ("--root", dict(type=str, help="Root directory."))
     )
 
 
