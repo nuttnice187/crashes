@@ -4,7 +4,7 @@ from argparse import ArgumentParser, Namespace
 from enum import Enum
 from importlib import import_module
 from logging import getLogger, INFO, Formatter, Logger, StreamHandler
-from typing import Callable, Optional
+from typing import Callable, Dict, Tuple, Union
 
 from pyspark.sql import SparkSession
 
