@@ -4,7 +4,7 @@ from argparse import ArgumentParser, Namespace
 from enum import Enum
 from importlib import import_module
 from logging import getLogger, INFO, Formatter, Logger, StreamHandler
-from typing import Callable, Optional
+from typing import Callable, Dict, Tuple, Union
 
 from pyspark.sql import SparkSession
 
@@ -12,6 +12,16 @@ from pyspark.sql import SparkSession
 class Default(Enum):
     ROOT = "crashes"
     LOG_LEVEL = INFO
+    ARG_CONFIGS = (
+        ("--job", dict(type=str, help="Python package name.")),
+        ("--task", dict(type=str, help="Python module name.")),
+        ("--api_url", dict(type=str, help="API URL to fetch data from.")),
+        ("--source_path", dict(type=str, help="Source path to read from.")),
+        ("--target_path", dict(type=str, help="Target path to write to.")),
+        ("--run_id", dict(type=str, help="databricks metadata for job run.")),
+        ("--log_level", dict(type=str, help="Log level to use.")),
+        ("--root", dict(type=str, help="Root directory."))
+    )
 
 
 class JobTask:
@@ -20,12 +30,12 @@ class JobTask:
     name: str
     root: str
 
-    def __init__(self):
-        self.parse_argv()
+    def __init__(self, *arg_configs: Tuple[str, Dict[str, Union[type, str]]]) -> None:
+        self.parse_argv(*arg_configs)
         self.set_name()
         self.set_logger()
 
-    def parse_argv(self) -> None:
+    def parse_argv(self, *arg_configs: Tuple[str, Dict[str, Union[type, str]]]) -> None:
         """
         Parse command line arguments
         """
@@ -36,16 +46,7 @@ class JobTask:
             "Present gold delta table from curated change feed."
         )
 
-        parser.add_argument("--job", type=str, help="Python package name.")
-        parser.add_argument("--task", type=str, help="Python module name.")
-        parser.add_argument("--api_url", type=str, help="API URL to fetch data from.")
-        parser.add_argument("--source_path", type=str, help="Source path to read from.")
-        parser.add_argument("--target_path", type=str, help="Target path to write to.")
-        parser.add_argument(
-            "--run_id", type=str, help="databricks metadata for job run."
-        )
-        parser.add_argument("--log_level", type=str, help="Log level to use.")
-        parser.add_argument("--root", type=str, help="Root directory.")
+        [parser.add_argument(arg, **kwargs) for arg, kwargs in arg_configs]
 
         self.args, unknown = parser.parse_known_args()
 
@@ -108,5 +109,5 @@ class JobTask:
 
 
 if __name__ == "__main__":
-    job_task = JobTask()
+    job_task = JobTask(*Default.ARG_CONFIGS.value)
     job_task.run()
