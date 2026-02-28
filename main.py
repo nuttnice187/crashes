@@ -16,9 +16,9 @@ class Default(Enum):
 
     ROOT = "crashes"
     LOG_LEVEL = INFO
-    PARSER_DESC = "Ingest data from API into Spark and save as Parquet."
+    PARSER_DESC = ("Ingest data from API into Spark and save as Parquet."
         "Curate silver delta table from ingested datasource."
-        "Present gold delta table from curated change feed."
+        "Present gold delta table from curated change feed.")
     ARG_CONFIGS = (
         ("--job", dict(type=str, help="Python package name.")),
         ("--task", dict(type=str, help="Python module name.")),
