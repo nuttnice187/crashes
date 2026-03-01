@@ -40,7 +40,7 @@ class JobTask:
     args: Namespace
     name: str
     root: str
-    config: Default
+    config: Type[Enum]
 
     def __init__(self, config: Type[Enum]) -> None:
         """
