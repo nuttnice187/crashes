@@ -4,7 +4,7 @@ from argparse import ArgumentParser, Namespace
 from enum import Enum
 from importlib import import_module
 from logging import getLogger, INFO, Formatter, Logger, StreamHandler
-from typing import Callable, Dict, Tuple, Union
+from typing import Callable, Dict, Tuple, Type, Union
 
 from pyspark.sql import SparkSession
 
@@ -42,7 +42,7 @@ class JobTask:
     root: str
     config: Default
 
-    def __init__(self, config: Default) -> None:
+    def __init__(self, config: Type[Enum]) -> None:
         """
         Initialize job task
         """
