@@ -27,7 +27,7 @@ class Default(Enum):
 
 class Target(Enum):
     """
-    Enamerate target delta table properties
+    Enamerate target properties
     """
 
     RENAMED = (":@computed_region_rpca_8um6", "computed_region_rpca_8um6")
