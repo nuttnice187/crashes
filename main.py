@@ -117,11 +117,13 @@ class JobTask:
         """
         Run job task
         """
-
-        main = self.get_main_process()
-
+        
         self.logger.info(self.args)
-        main(SparkSession.builder.getOrCreate(), self.logger, self.args)
+        self.get_main_process()(
+            SparkSession.builder.getOrCreate(), 
+            self.logger, 
+            self.args
+        )
 
 
 if __name__ == "__main__":
