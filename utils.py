@@ -16,8 +16,4 @@ def catch_schema_mismatch(
         assertSchemaEqual(source_schema, target_schema)
         logger.info(f"Schemas match.")
     except AssertionError as e:
-        logger.warning(
-            "Schema mismatch detected." 
-            f"{e}"
-            "Attempting to merge schemas."
-        )
+        logger.warning(f"{e}\nAttempting to merge schemas.")
