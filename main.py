@@ -96,7 +96,7 @@ class JobTask:
 
         self.logger = logger
 
-    def get_main_process(self) -> Callable[[SparkSession, Logger, Namespace], None]:
+    def get_main(self) -> Callable[[SparkSession, Logger, Namespace], None]:
         """
         Get main process from command line arguments
         Returns:
@@ -119,7 +119,7 @@ class JobTask:
         """
         
         self.logger.info(self.args)
-        self.get_main_process()(
+        self.get_main()(
             SparkSession.builder.getOrCreate(), 
             self.logger, 
             self.args
@@ -127,5 +127,5 @@ class JobTask:
 
 
 if __name__ == "__main__":
-    job_task = JobTask(Default)
+    job_task = JobTask(config=Default)
     job_task.run()
