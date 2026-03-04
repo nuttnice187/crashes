@@ -116,7 +116,7 @@ class JobTask:
     def run(self) -> None:
         """
         Run job task
-        Currying enables specialized functions from general ones
+        Enables specialized functions from general ones
         """
         
         self.logger.info(self.args)
