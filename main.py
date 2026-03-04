@@ -115,7 +115,7 @@ class JobTask:
 
     def run(self) -> None:
         """
-        Calls specialized procedure from generalized function
+        Execute specialized main procedure from generalized function
         """
         
         self.logger.info(self.args)
