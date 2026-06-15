@@ -79,7 +79,7 @@ class Ingestor:
 
     def extract(self, api_url: str) -> None:
         """
-        Fetches data from a given API URL and creates a Spark DataFrame from it.
+        Fetches data from a given API URL and memoizes the json response.
         Includes retry mechanism for network resilience.
         """
 
